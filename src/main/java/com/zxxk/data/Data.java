@@ -1,5 +1,8 @@
 package com.zxxk.data;
 
+import com.zxxk.exception.ClassificationException;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -11,9 +14,9 @@ public class Data {
 
     private List<String> features;
 
-    private String label;
+//    private String label;
 
-    private List<String> labels;
+    private List<String> labels = new ArrayList<>();
 
     public String getId() {
         return id;
@@ -24,11 +27,14 @@ public class Data {
     }
 
     public String getLabel() {
-        return label;
+        if (labels.size() <= 0) {
+            throw new ClassificationException("this data has no labes!");
+        }
+        return labels.get(0);
     }
 
     public void setLabel(String label) {
-        this.label = label;
+        this.labels.add(label);
     }
 
     public List<String> getFeatures() {

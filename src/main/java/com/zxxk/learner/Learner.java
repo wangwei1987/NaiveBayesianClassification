@@ -30,13 +30,7 @@ public class Learner {
 
     private List<Data> testingData;
 
-    private int divider;
-
     private void init() {
-//        for(int i=0; i<=labels.size(); i++) {
-//            counts.add(new ArrayList<Integer>());
-//        }
-        divider = trainingData.size() / 100;
         features = new Features(labels.size());
     }
 
@@ -62,10 +56,11 @@ public class Learner {
     public void train() {
 
         for (Data data : trainingData) {
+            labels.countPlus(data.getLabels());
 
             List<String> featuresInData = data.getFeatures();
             int labelIndex = labels.indexOf(data.getLabel());
-
+            List<String> labels = data.getLabels();
 
             for (String feature : featuresInData) {
                 if (!features.contains(feature)) {
@@ -80,11 +75,6 @@ public class Learner {
                     }
                 } else {
                     int featureIndex = features.indexOf(feature);
-//                    List<Integer> countAll = counts.get(0);
-//                    List<Integer> countInLabel = counts.get(labelIndex + 1);
-//
-//                    countAll.set(featureIndex, countAll.get(featureIndex) + 1);
-//                    countInLabel.set(featureIndex, countInLabel.get(featureIndex) + 1);
 
                     features.plus(0, featureIndex);
                     features.plus(labelIndex + 1, featureIndex);
@@ -99,6 +89,7 @@ public class Learner {
         }
         // 先进行训练
         this.train();
+        System.out.println("training done !!");
 
         EvaluationResult evaluationResult = new EvaluationResult();
 
@@ -127,7 +118,7 @@ public class Learner {
             // 初始化labelValue
             double[] labelValue = new double[labels.size()];
             for (int i = 0; i < labelValue.length; i++) {
-                labelValue[i] = 1.0 * labels.getDistribution(i);
+                labelValue[i] = 1.0 * labels.getCount(i);
             }
 
             for (String feature : featuresOfData) {
@@ -142,8 +133,8 @@ public class Learner {
 //                    }
 
                     curLabelValue *= features.getCounts(i).get(featureIndex) == 0 ?
-                            0.1 / labels.getDistribution(data.getLabel()) :
-                            features.getCounts(i).get(featureIndex) * 1.0 / labels.getDistribution(data.getLabel());
+                            0.1 / labels.getCount(data.getLabel()) :
+                            features.getCounts(i).get(featureIndex) * 1.0 / labels.getCount(data.getLabel());
                     labelValue[i - 1] = curLabelValue;
                 }
                 // 平衡label中的值，使得里面的值不会太小

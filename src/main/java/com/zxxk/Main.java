@@ -41,17 +41,18 @@ public class Main {
     @Test
     public void testKpointId() {
         DataSource dataSource = new DataSource();
-
-        List<Data> trainingData = dataSource.extractOraginalDataOfQbm("10466", true, "0, 9000");
+        System.out.println("fetching data");
+        List<Data> trainingData = dataSource.extractOraginalDataOfQbm("10466", true, "0, 2000");
         ;
-        trainingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "0, 9000"));
+        trainingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "0, 2000"));
 
-        List<Data> testingData = dataSource.extractOraginalDataOfQbm("10466", true, "9000, 1000");
-        testingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "9000, 1000"));
+        List<Data> testingData = dataSource.extractOraginalDataOfQbm("10466", true, "2000, 100");
+        testingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "2000, 100"));
 
+        System.out.println("finish fetching data");
         String[] labelNames = {"10466", "-10466"};
-        Integer[] labelDistribution = {8000, 8000};
-        Labels labels = new Labels(labelNames, labelDistribution);
+//        Integer[] labelDistribution = {8000, 8000};
+        Labels labels = new Labels(labelNames);
         Learner learner = new Learner(trainingData, testingData, labels);
 
         EvaluationResult result = learner.evaluate();
