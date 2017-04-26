@@ -13,6 +13,8 @@ import java.util.List;
  */
 public class Labels {
 
+    public static final String LABEL_OTHER = "_other";
+
     // 标签名
     private List<String> names;
     // 已学习的成果中各个标签下的数据数
@@ -26,13 +28,15 @@ public class Labels {
         this.counts = Arrays.asList(counts);
     }
 
-    public Labels(String[] names) {
-        if (ArrayUtils.isEmpty(names)) {
+    public Labels(List<String> names) {
+        if (CollectionUtils.isEmpty(names)) {
             throw new ClassCastException("the names should not be empty！");
         }
-        this.names = Arrays.asList(names);
+        this.names = names;
+        // if data not belone to any labels, then it belone to _other
+        this.names.add(LABEL_OTHER);
         this.counts = new ArrayList<>();
-        for (int i = 0; i < names.length; i++) {
+        for (int i = 0; i < names.size(); i++) {
             this.counts.add(0);
         }
     }
@@ -73,16 +77,26 @@ public class Labels {
         return names.indexOf(label);
     }
 
+    public List<Integer> indexOf(List<String> labels) {
+        List<Integer> indexes = new ArrayList<>();
+        for(String label : labels) {
+            indexes.add(names.indexOf(label));
+        }
+        return indexes;
+    }
+
     public String get(int index) {
         return names.get(index);
     }
 
     public void countPlus(String label) {
         if (!names.contains(label)) {
-            throw new ClassificationException("invalid label " + label);
+            counts.set(names.size() - 1, counts.get(names.size() - 1) + 1);
         }
-        int index = names.indexOf(label);
-        counts.set(index, counts.get(index) + 1);
+        else {
+            int index = names.indexOf(label);
+            counts.set(index, counts.get(index) + 1);
+        }
     }
 
     public void countPlus(List<String> labels) {

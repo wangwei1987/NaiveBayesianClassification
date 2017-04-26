@@ -8,6 +8,7 @@ import com.zxxk.learner.EvaluationResult;
 import com.zxxk.learner.Learner;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -42,20 +43,25 @@ public class Main {
     public void testKpointId() {
         DataSource dataSource = new DataSource();
         System.out.println("fetching data");
-        List<Data> trainingData = dataSource.extractOraginalDataOfQbm("10466", true, "0, 2000");
+        List<Data> trainingData = dataSource.extractOraginalDataOfQbm("10466", true, "0, 1000");
         ;
+        trainingData.addAll(dataSource.extractOraginalDataOfQbm("10459", true, "0, 1000"));
         trainingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "0, 2000"));
 
-        List<Data> testingData = dataSource.extractOraginalDataOfQbm("10466", true, "2000, 100");
-        testingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "2000, 100"));
+        List<Data> testingData = dataSource.extractOraginalDataOfQbm("10466", true, "1000, 100");
+        testingData.addAll(dataSource.extractOraginalDataOfQbm("10459", true, "100, 100"));
+        testingData.addAll(dataSource.extractOraginalDataOfQbm("10466", false, "2000, 200"));
 
         System.out.println("finish fetching data");
-        String[] labelNames = {"10466", "-10466"};
+//        String[] labelNames = {"10466"};
 //        Integer[] labelDistribution = {8000, 8000};
+        List<String> labelNames = new ArrayList<>();
+        labelNames.add("10466");
+        labelNames.add("10459");
         Labels labels = new Labels(labelNames);
         Learner learner = new Learner(trainingData, testingData, labels);
 
-        EvaluationResult result = learner.evaluate();
+        EvaluationResult result = learner.multiLabelEvaluate();
         System.out.println(result);
     }
 

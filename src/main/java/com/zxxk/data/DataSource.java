@@ -27,7 +27,7 @@ public class DataSource {
     private List<Integer> count = new ArrayList<Integer>();                 // 词语出现的总次数
 
     private final static String driver = "com.mysql.jdbc.Driver";
-    private final static String url = "jdbc:mysql://localhost:3306/qbm";
+    private final static String url = "jdbc:mysql://localhost:3306/test";
     private final static String username = "root";
     private final static String password = "root";
 
@@ -127,24 +127,32 @@ public class DataSource {
         PreparedStatement statement = null;
         try {
             if (flag) {
-                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointid from question_kpoint qk " +
+                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk " +
                         "join questions q on qk.questionid=q.id join question_qmls qq on qq.questionid=q.id where " +
-                        "applicationid='zujuan' and courseid=27 and pointid=" + pointId + " limit " + limit);
+                        "applicationid='zujuan' and courseid=27 and find_in_set('" + pointId + "',pointids) > 0 limit " + limit);
             } else {
-                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointid from question_kpoint qk join questions q on qk.questionid=q.id " +
-                        " join question_qmls qq on qq.questionid=q.id where applicationid='zujuan' and courseid=27 and  not exists " +
-                        "   (select 1 from question_kpoint where questionid=qk.questionid and pointid=" + pointId + ") group by qk.questionid limit " + limit);
+                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk join questions q on qk.questionid=q.id " +
+                        " join question_qmls qq on qq.questionid=q.id where applicationid='zujuan' and courseid=27 and find_in_set('" + pointId + "',pointids) = 0" +
+                        " and find_in_set('" + 10459 + "',pointids) = 0 limit " + limit);
             }
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 Data data = new Data();
                 data.setId(rs.getString(1));
 
-                if (rs.getString(3).equals(pointId)) {
-                    data.setLabel(pointId);
-                } else {
-                    data.setLabel("-" + pointId);
+                String labels = rs.getString(3);
+                if(!labels.contains(",")) {
+                    data.setLabel(labels);
                 }
+                else {
+                    data.setLabels(Arrays.asList(labels.split(",")));
+                }
+
+//                if (rs.getString(3).equals(pointId)) {
+//                    data.setLabel(pointId);
+//                } else {
+//                    data.setLabel("-" + pointId);
+//                }
 
 //                Map<String, Object> map = new HashMap<>();
 //                map.put("qnumber", rs.getString(1));

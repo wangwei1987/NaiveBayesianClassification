@@ -34,6 +34,7 @@ public class Data {
     }
 
     public void setLabel(String label) {
+        labels = new ArrayList<>();
         this.labels.add(label);
     }
 

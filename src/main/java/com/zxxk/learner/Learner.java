@@ -7,6 +7,7 @@ import com.zxxk.exception.ClassificationException;
 import com.zxxk.util.MaxValuedLabel;
 import org.apache.commons.collections4.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -59,25 +60,44 @@ public class Learner {
             labels.countPlus(data.getLabels());
 
             List<String> featuresInData = data.getFeatures();
-            int labelIndex = labels.indexOf(data.getLabel());
-            List<String> labels = data.getLabels();
+            List<String> labelsOfData = data.getLabels();
+
+            // labels is empty or invalid, set the label to _other
+            if(CollectionUtils.isEmpty(labelsOfData)) {
+                // if label is empty, set its label to _other
+                labelsOfData = new ArrayList<>();
+                labelsOfData.add(Labels.LABEL_OTHER);
+            }
+            else {
+                // clear invalid labels
+                data.setLabels(filterValidLabels(labelsOfData));
+                labelsOfData = data.getLabels();
+            }
 
             for (String feature : featuresInData) {
                 if (!features.contains(feature)) {
                     features.addFeature(feature);
 
-                    for (int i = 0; i <= labels.size(); i++) {
-                        if (i == labelIndex + 1 || i == 0) {
-                            features.initCount(i, 1);
-                        } else {
-                            features.initCount(i, 0);
-                        }
+//                    for (int i = 0; i <= labels.size(); i++) {
+//                        if (i == labelIndex + 1 || i == 0) {
+//                            features.initCount(i, 1);
+//                        } else {
+//                            features.initCount(i, 0);
+//                        }
+//                    }
+                    features.initCount(0, 1);
+                    for(String label : labelsOfData) {
+                        int labelIndex = labels.indexOf(label);
+                        features.plus(labelIndex + 1, features.size() - 1);
                     }
                 } else {
                     int featureIndex = features.indexOf(feature);
 
                     features.plus(0, featureIndex);
-                    features.plus(labelIndex + 1, featureIndex);
+                    for(String label : labelsOfData) {
+                        int labelIndex = labels.indexOf(label);
+                        features.plus(labelIndex + 1, featureIndex);
+                    }
                 }
             }
         }
@@ -87,9 +107,12 @@ public class Learner {
         if (CollectionUtils.isEmpty(testingData)) {
             throw new ClassificationException("testing data should not be empty!");
         }
+        System.out.println("training start !!");
         // 先进行训练
         this.train();
         System.out.println("training done !!");
+        System.out.println();
+        System.out.println("evaluating start !!");
 
         EvaluationResult evaluationResult = new EvaluationResult();
 
@@ -107,6 +130,8 @@ public class Learner {
 
 
         for (Data data : testingData) {
+
+            data.setLabels(filterValidLabels(data.getLabels()));
 
             List<String> featuresOfData = data.getFeatures();
 
@@ -128,9 +153,6 @@ public class Learner {
 
                 for (int i = 1; i <= labels.size(); i++) {
                     double curLabelValue = labelValue[i - 1];
-//                    if(curLabelValue == 0) {
-//                        curLabelValue = 1;
-//                    }
 
                     curLabelValue *= features.getCounts(i).get(featureIndex) == 0 ?
                             0.1 / labels.getCount(data.getLabel()) :
@@ -138,7 +160,7 @@ public class Learner {
                     labelValue[i - 1] = curLabelValue;
                 }
                 // 平衡label中的值，使得里面的值不会太小
-                balanceValue(labelValue);
+                balanceArrayValue(labelValue);
             }
             if (getMax(labelValue).isMulti()) {
                 evaluationResult.undonePlus();
@@ -154,21 +176,113 @@ public class Learner {
         return evaluationResult;
     }
 
+    public EvaluationResult multiLabelEvaluate() {
+        if (CollectionUtils.isEmpty(testingData)) {
+            throw new ClassificationException("testing data should not be empty!");
+        }
+        System.out.println("training start !!");
+        // 先进行训练
+        this.train();
+        System.out.println("training done !!");
+        System.out.println();
+        System.out.println("evaluating start !!");
+
+        EvaluationResult evaluationResult = new EvaluationResult();
+
+        for (int i = 0; i < features.size(); i++) {
+            if (i != 0 && i % 6 == 0) {
+                System.out.println();
+            }
+            String countsStr = " : (";
+            for (int j = 0; j < features.getAllCounts().size(); j++) {
+                countsStr += features.getCounts(j).get(i) + ", ";
+            }
+            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
+        }
+        System.out.println();
+
+
+        for (Data data : testingData) {
+
+            data.setLabels(filterValidLabels(data.getLabels()));
+
+            List<String> featuresOfData = data.getFeatures();
+
+            if (CollectionUtils.isEmpty(featuresOfData)) {
+                evaluationResult.undonePlus();
+                continue;
+            }
+
+            // 初始化labelValue
+            double[][] labelValue = new double[labels.size() - 1][2];
+            for (int i = 0; i < labelValue.length; i++) {
+                labelValue[i][0] = 1.0 * labels.getCount(i);
+                labelValue[i][1] = 1.0 * labels.getCount(i);
+            }
+
+            for (String feature : featuresOfData) {
+                double[] featureValue = new double[2];
+
+                int featureIndex = features.indexOf(feature);
+                if (featureIndex < 0) continue;
+
+                for (int i = 1; i < labels.size(); i++) {
+
+                    int presentCount = features.getCounts(i).get(featureIndex);
+                    labelValue[i-1][0] *= presentCount == 0 ?
+                            0.1 / labels.getCount(data.getLabel()) :
+                            presentCount * 1.0 / labels.getCount(data.getLabel());
+
+                    int absentCount = features.getCounts(0).get(featureIndex) - presentCount;
+                    labelValue[i-1][1] *= absentCount == 0 ?
+                            0.1 / labels.getCount(data.getLabel()) :
+                            absentCount * 1.0 / labels.getCount(data.getLabel());
+
+                }
+                // 平衡label中的值，使得里面的值不会太小
+                balanceValue(labelValue);
+            }
+            System.out.println("==========================");
+            for(double[] values : labelValue) {
+
+                if (getMax(values).isMulti()) {
+                    evaluationResult.undonePlus();
+                    System.out.println("undone : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                } else if (labels.get(getMax(values).getIndex()).equals(data.getLabel())) {
+                    evaluationResult.successPlus();
+                    System.out.println("success : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                } else {
+                    evaluationResult.failedPlus();
+                    System.err.println("failed : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                }
+
+            }
+            System.out.println("==========================");
+        }
+        return evaluationResult;
+    }
+
     public Prediction predict() {
         return null;
     }
 
+
+    private void balanceValue(double[][] arrs) {
+        for (double[] arr : arrs) {
+            balanceArrayValue(arr);
+        }
+    }
     /**
      * 使数组中最大的值不小于1
      *
      * @param arr
      */
-    private void balanceValue(double[] arr) {
+    private void balanceArrayValue(double[] arr) {
         if (arr[getMax(arr).getIndex()] < 1) {
             for (int i = 0; i < arr.length; i++) {
                 arr[i] *= 10;
             }
-            balanceValue(arr);
+            balanceArrayValue(arr);
         }
     }
 
@@ -184,5 +298,24 @@ public class Learner {
             }
         }
         return new MaxValuedLabel(maxIndex, multi);
+    }
+
+    private List<String> filterValidLabels(List<String> labelsOfData) {
+        // clear invalid labels
+        List<String> finalLabels = new ArrayList<>();
+        for(String label : labelsOfData) {
+            if(labels.indexOf(label) >= 0) {
+                finalLabels.add(label);
+            }
+        }
+        if(CollectionUtils.isEmpty(finalLabels)) {
+            finalLabels.add(Labels.LABEL_OTHER);
+        }
+        return finalLabels;
+    }
+
+    public static void main(String[] args) {
+        double[][] a = {{1.0,2.0},{3.0},{4.0}};
+        System.out.println(Arrays.toString(a));
     }
 }

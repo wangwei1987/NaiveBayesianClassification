@@ -20,6 +20,8 @@ public class SentenceSpliter {
 
 
     public static List<String> analyze(String text) {
+        text = text.replaceAll("<[^>]+>", " ").replace("&gt;", ">").replace("&gt;","<");
+
         Set<String> result = new HashSet<>();
 
         //创建分词对象
@@ -33,8 +35,18 @@ public class SentenceSpliter {
             //遍历分词数据
             while (ts.incrementToken()) {
 //            System.out.print(term.toString()+"|");
-                if (!term.toString().trim().equals(""))
+                if (!term.toString().trim().equals("")) {
+
+                    String word = term.toString();
+                    if (StringUtils.isNumeric(word)) continue;
+                    if (Pattern.compile("^[0-9.,-]+$").matcher(word).matches()) continue;
+
+                    word = word.replace("_", "");
+                    word = word.replaceAll("^[0-9.]+([^0-9]{0,3})$", "$1");
+
                     result.add(term.toString());
+                }
+
             }
             reader.close();
 //        System.out.println();
