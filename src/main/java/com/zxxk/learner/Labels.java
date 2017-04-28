@@ -1,4 +1,4 @@
-package com.zxxk.data;
+package com.zxxk.learner;
 
 import com.zxxk.exception.ClassificationException;
 import org.apache.commons.collections4.CollectionUtils;

@@ -1,12 +1,13 @@
 package com.zxxk.learner;
 
-import com.zxxk.data.Data;
-import com.zxxk.data.Features;
-import com.zxxk.data.Labels;
+import com.zxxk.domain.Data;
 import com.zxxk.exception.ClassificationException;
 import com.zxxk.util.MaxValuedLabel;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.stereotype.Component;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 /**
  * Created by shiti on 17-4-20.
  */
+@Component
 public class Learner {
 
     // 所有的feature
@@ -54,9 +56,14 @@ public class Learner {
         init();
     }
 
+    public Learner() {
+
+    }
+
     public void train() {
 
         for (Data data : trainingData) {
+            data.setLabels(filterValidLabels(data.getLabels()));
             labels.countPlus(data.getLabels());
 
             List<String> featuresInData = data.getFeatures();
@@ -78,13 +85,6 @@ public class Learner {
                 if (!features.contains(feature)) {
                     features.addFeature(feature);
 
-//                    for (int i = 0; i <= labels.size(); i++) {
-//                        if (i == labelIndex + 1 || i == 0) {
-//                            features.initCount(i, 1);
-//                        } else {
-//                            features.initCount(i, 0);
-//                        }
-//                    }
                     features.initCount(0, 1);
                     for(String label : labelsOfData) {
                         int labelIndex = labels.indexOf(label);
@@ -116,17 +116,17 @@ public class Learner {
 
         EvaluationResult evaluationResult = new EvaluationResult();
 
-        for (int i = 0; i < features.size(); i++) {
-            if (i != 0 && i % 6 == 0) {
-                System.out.println();
-            }
-            String countsStr = " : (";
-            for (int j = 0; j < features.getAllCounts().size(); j++) {
-                countsStr += features.getCounts(j).get(i) + ", ";
-            }
-            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
-        }
-        System.out.println();
+//        for (int i = 0; i < features.size(); i++) {
+//            if (i != 0 && i % 6 == 0) {
+//                System.out.println();
+//            }
+//            String countsStr = " : (";
+//            for (int j = 0; j < features.getAllCounts().size(); j++) {
+//                countsStr += features.getCounts(j).get(i) + ", ";
+//            }
+//            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
+//        }
+//        System.out.println();
 
 
         for (Data data : testingData) {
@@ -177,13 +177,16 @@ public class Learner {
     }
 
     public EvaluationResult multiLabelEvaluate() {
+        List<Result> results = new ArrayList<>();
         if (CollectionUtils.isEmpty(testingData)) {
             throw new ClassificationException("testing data should not be empty!");
         }
         System.out.println("training start !!");
+        long start = System.currentTimeMillis();
         // 先进行训练
         this.train();
-        System.out.println("training done !!");
+        long end = System.currentTimeMillis();
+        System.out.println("training done !! use time : " + (end - start) / 1000);
         System.out.println();
         System.out.println("evaluating start !!");
 
@@ -210,6 +213,7 @@ public class Learner {
 
             if (CollectionUtils.isEmpty(featuresOfData)) {
                 evaluationResult.undonePlus();
+                System.out.println("undone : " + data.getId());
                 continue;
             }
 
@@ -217,7 +221,7 @@ public class Learner {
             double[][] labelValue = new double[labels.size() - 1][2];
             for (int i = 0; i < labelValue.length; i++) {
                 labelValue[i][0] = 1.0 * labels.getCount(i);
-                labelValue[i][1] = 1.0 * labels.getCount(i);
+                labelValue[i][1] = 1.0 * (trainingData.size() - labels.getCount(i));
             }
 
             for (String feature : featuresOfData) {
@@ -234,30 +238,71 @@ public class Learner {
                             presentCount * 1.0 / labels.getCount(data.getLabel());
 
                     int absentCount = features.getCounts(0).get(featureIndex) - presentCount;
+                    int absentTotal = trainingData.size() - labels.getCount(data.getLabel());
+                    if (absentCount < 0 || absentTotal < 0) {
+                        System.out.println(111);
+                    }
                     labelValue[i-1][1] *= absentCount == 0 ?
-                            0.1 / labels.getCount(data.getLabel()) :
-                            absentCount * 1.0 / labels.getCount(data.getLabel());
+                            0.1 / absentTotal :
+                            absentCount * 1.0 / absentTotal;
 
                 }
                 // 平衡label中的值，使得里面的值不会太小
                 balanceValue(labelValue);
             }
-            System.out.println("==========================");
-            for(double[] values : labelValue) {
+            Result result = new Result(data.getId(), data.getLabels(), labelValue, labels.getNames());
+            results.add(result);
+//            for(int i=0; i<labelValue.length; i++) {
+//                double[] values = labelValue[i];
+//
+//                if (getMax(values).isMulti()) {
+//                    evaluationResult.undonePlus();
+//                    System.out.println(i+" undone : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+//                } else if (labels.get(getMax(values).getIndex()).equals(data.getLabel())) {
+//                    evaluationResult.successPlus();
+//                    System.out.println(i+" success : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+//                } else {
+//                    evaluationResult.failedPlus();
+//                    System.err.println(i+" failed : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+//                }
+//            }
+//            System.out.println("==========================");
+        }
+//        EvaluationResult evaluationResult1 = new EvaluationResult();
+        try {
+            FileWriter fileWriter = new FileWriter("/home/wangwei/Dev/data/result.txt", false);
 
-                if (getMax(values).isMulti()) {
-                    evaluationResult.undonePlus();
-                    System.out.println("undone : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
-                } else if (labels.get(getMax(values).getIndex()).equals(data.getLabel())) {
-                    evaluationResult.successPlus();
-                    System.out.println("success : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
-                } else {
-                    evaluationResult.failedPlus();
-                    System.err.println("failed : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+            for (Result result : results) {
+                fileWriter.append(result.getId() + ", " + result.getLabels());
+                fileWriter.append("\n");
+                //            System.out.println(result.getId()+", "+result.getLabels());
+//                for (double[] value : result.getScores()) {
+                for (int i = 0; i < result.getScores().length; i++) {
+                    fileWriter.append(labels.get(i) + " values : " + Arrays.toString(result.getScores()[i]));
+                    fileWriter.append("\n");
+//                    System.out.println("values : " + Arrays.toString(value));
                 }
 
+                if (result.getResult()) {
+                    evaluationResult.successPlus();
+                    fileWriter.write("true labels are " + result.getLabels() + ", predicted labels are " + result.getPredictedLabels() + ", so predict success!");
+                    fileWriter.append("\n");
+//                    System.out.println("true labels are "+result.getLabels()+", predicted labels are "+result.getPredictedLabels()+", so predict success!");
+                } else {
+                    evaluationResult.failedPlus();
+                    fileWriter.write("true labels are " + result.getLabels() + ", predicted labels are " + result.getPredictedLabels() + ", so predict failed!");
+                    fileWriter.append("\n");
+//                    System.out.println("true labels are "+result.getLabels()+", predicted labels are "+result.getPredictedLabels()+", so predict failed!");
+                }
+                fileWriter.append("============================================");
+                fileWriter.append("\n");
+//                System.out.println("====================================");
             }
-            System.out.println("==========================");
+
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return evaluationResult;
     }
@@ -312,6 +357,31 @@ public class Learner {
             finalLabels.add(Labels.LABEL_OTHER);
         }
         return finalLabels;
+    }
+
+    public List<Data> getTrainingData() {
+        return trainingData;
+    }
+
+    public void setTrainingData(List<Data> trainingData) {
+        this.trainingData = trainingData;
+    }
+
+    public List<Data> getTestingData() {
+        return testingData;
+    }
+
+    public void setTestingData(List<Data> testingData) {
+        this.testingData = testingData;
+    }
+
+    public Labels getLabels() {
+        return labels;
+    }
+
+    public void setLabels(Labels labels) {
+        this.labels = labels;
+        init();
     }
 
     public static void main(String[] args) {

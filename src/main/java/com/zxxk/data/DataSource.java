@@ -1,6 +1,7 @@
 package com.zxxk.data;
 
-import com.zxxk.analyzer.SentenceSpliter;
+import com.zxxk.domain.Data;
+import com.zxxk.util.SentenceAnalyzer;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
@@ -61,7 +62,7 @@ public class DataSource {
 //                map.put("qnumber", rs.getString(1));
 //                map.put("subject", rs.getString(2));
 
-                List<String> wordsFromSentence = SentenceSpliter.analyze(rs.getString(3).replaceAll("<[^>]+>", " "));
+                List<String> wordsFromSentence = SentenceAnalyzer.analyze(rs.getString(3).replaceAll("<[^>]+>", " "));
                 List<String> finalWords = new ArrayList<String>();
                 for (String word : wordsFromSentence) {
 
@@ -121,20 +122,41 @@ public class DataSource {
         return null;
     }
 
-    public List<Data> extractOraginalDataOfQbm(String pointId, boolean flag, String limit) {
+    public List<Data> extractOraginalDataOfQbm(String pointId, String pointId1, boolean flag, String limit) {
         List<Data> result = new ArrayList<Data>();
 
         PreparedStatement statement = null;
         try {
-            if (flag) {
-                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk " +
-                        "join questions q on qk.questionid=q.id join question_qmls qq on qq.questionid=q.id where " +
-                        "applicationid='zujuan' and courseid=27 and find_in_set('" + pointId + "',pointids) > 0 limit " + limit);
-            } else {
-                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk join questions q on qk.questionid=q.id " +
-                        " join question_qmls qq on qq.questionid=q.id where applicationid='zujuan' and courseid=27 and find_in_set('" + pointId + "',pointids) = 0" +
-                        " and find_in_set('" + 10459 + "',pointids) = 0 limit " + limit);
+            String condition = "";
+            if (pointId != null) {
+                if (flag) {
+                    condition = " and find_in_set('" + pointId + "',pointids) > 0";
+                    if (pointId1 != null) {
+                        condition += " and find_in_set('" + pointId1 + "',pointids) > 0";
+                    }
+                } else {
+                    condition = " and find_in_set('" + pointId + "',pointids) = 0";
+                    if (pointId1 != null) {
+                        condition += " and find_in_set('" + pointId1 + "',pointids) = 0";
+                    }
+                }
             }
+
+            statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk " +
+                    "join questions q on qk.questionid=q.id join question_qmls qq on qq.questionid=q.id where " +
+                    "applicationid='zujuan' and courseid=27 " + condition + " limit " + limit);
+            System.out.println(statement);
+//            if (flag) {
+//
+//
+//                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk " +
+//                        "join questions q on qk.questionid=q.id join question_qmls qq on qq.questionid=q.id where " +
+//                        "applicationid='zujuan' and courseid=27 and "+condition+" limit " + limit);
+//            } else {
+//                statement = conn.prepareStatement("select qq.questionid, qq.stem, qk.pointids from question_kpoints qk join questions q on qk.questionid=q.id " +
+//                        " join question_qmls qq on qq.questionid=q.id where applicationid='zujuan' and courseid=27 and find_in_set('" + pointId + "',pointids) = 0" +
+//                        " and find_in_set('" + pointId1 + "',pointids) = 0 limit " + limit);
+//            }
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 Data data = new Data();
@@ -158,7 +180,7 @@ public class DataSource {
 //                map.put("qnumber", rs.getString(1));
 //                map.put("subject", rs.getString(2));
 
-                List<String> wordsFromSentence = SentenceSpliter.analyze(rs.getString(2).replaceAll("<[^>]+>", " "));
+                List<String> wordsFromSentence = SentenceAnalyzer.analyze(rs.getString(2).replaceAll("<[^>]+>", " "));
                 List<String> finalWords = new ArrayList<String>();
                 for (String word : wordsFromSentence) {
 
@@ -190,7 +212,7 @@ public class DataSource {
 
     @Test
     public void testExtractOraginalDataOfQbm() {
-        extractOraginalDataOfQbm("1", true, "0, 10");
+//        extractOraginalDataOfQbm("1", true, "0, 10");
     }
 
     int sucess = 0;
@@ -235,6 +257,23 @@ public class DataSource {
         }
         System.out.println("testData.size : " + testDatas.size());
         System.out.println("预测成功率为：" + sucess + ", " + equal);
+    }
+
+    @Test
+    public List<String> fetchAllKpointId(int courseId) {
+        try {
+            List<String> pointIds = new ArrayList<>();
+            PreparedStatement preparedStatement = conn.prepareStatement("select id from knowledge_points " +
+                    "where (type='KNOWLEDGE_POINT' or type = 'TESTING_POINT') and courseid = " + courseId);
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                pointIds.add(rs.getString(1));
+            }
+            return pointIds;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Test
