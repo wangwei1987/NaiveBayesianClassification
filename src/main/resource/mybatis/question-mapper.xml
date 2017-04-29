@@ -9,4 +9,12 @@
     <select id="getQuestionCount" resultType="com.zxxk.domain.Data">
         SELECT count(*) FROM questions
     </select>
+
+    <select id="countZujuanQuestion" resultType="_int">
+        SELECT count(*) FROM (
+            SELECT questionid
+            FROM question_kpoint qk JOIN questions q ON qk.questionid=q.id
+            WHERE courseid=#{courseId} AND applicationid="zujuan" GROUP BY qk.questionid
+        ) temp
+    </select>
 </mapper>

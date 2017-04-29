@@ -18,14 +18,7 @@ import java.util.List;
 @Component
 public class Learner {
 
-    // 所有的feature
-//    private List<String> allFeatures = new ArrayList<>();
-
-    // 各个label下feature的数量,其中第一个list保存的是出现的总次数
-//    private List<List<Integer>> counts = new ArrayList<>();
-
     private Features features;
-
     // 标签
     private Labels labels;
 
@@ -101,6 +94,18 @@ public class Learner {
                 }
             }
         }
+
+//        for (int i = 0; i < features.size(); i++) {
+//            if (i != 0 && i % 6 == 0) {
+//                System.out.println();
+//            }
+//            String countsStr = " : (";
+//            for (int j = 0; j < features.getAllCounts().size(); j++) {
+//                countsStr += features.getCounts(j).get(i) + ", ";
+//            }
+//            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
+//        }
+//        System.out.println();
     }
 
     public EvaluationResult evaluate() {
@@ -115,19 +120,6 @@ public class Learner {
         System.out.println("evaluating start !!");
 
         EvaluationResult evaluationResult = new EvaluationResult();
-
-//        for (int i = 0; i < features.size(); i++) {
-//            if (i != 0 && i % 6 == 0) {
-//                System.out.println();
-//            }
-//            String countsStr = " : (";
-//            for (int j = 0; j < features.getAllCounts().size(); j++) {
-//                countsStr += features.getCounts(j).get(i) + ", ";
-//            }
-//            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
-//        }
-//        System.out.println();
-
 
         for (Data data : testingData) {
 
@@ -164,13 +156,13 @@ public class Learner {
             }
             if (getMax(labelValue).isMulti()) {
                 evaluationResult.undonePlus();
-                System.out.println("undone : " + data.getId() + ", values : " + Arrays.toString(labelValue) + ", label : " + data.getLabel());
+//                System.out.println("undone : " + data.getId() + ", values : " + Arrays.toString(labelValue) + ", label : " + data.getLabel());
             } else if (labels.get(getMax(labelValue).getIndex()).equals(data.getLabel())) {
                 evaluationResult.successPlus();
-                System.out.println("success : " + data.getId() + ", values : " + Arrays.toString(labelValue) + ", label : " + data.getLabel());
+//                System.out.println("success : " + data.getId() + ", values : " + Arrays.toString(labelValue) + ", label : " + data.getLabel());
             } else {
                 evaluationResult.failedPlus();
-                System.err.println("failed : " + data.getId() + ", values : " + Arrays.toString(labelValue) + ", label : " + data.getLabel());
+//                System.err.println("failed : " + data.getId() + ", values : " + Arrays.toString(labelValue) + ", label : " + data.getLabel());
             }
         }
         return evaluationResult;
@@ -192,17 +184,7 @@ public class Learner {
 
         EvaluationResult evaluationResult = new EvaluationResult();
 
-        for (int i = 0; i < features.size(); i++) {
-            if (i != 0 && i % 6 == 0) {
-                System.out.println();
-            }
-            String countsStr = " : (";
-            for (int j = 0; j < features.getAllCounts().size(); j++) {
-                countsStr += features.getCounts(j).get(i) + ", ";
-            }
-            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
-        }
-        System.out.println();
+
 
 
         for (Data data : testingData) {
@@ -213,7 +195,7 @@ public class Learner {
 
             if (CollectionUtils.isEmpty(featuresOfData)) {
                 evaluationResult.undonePlus();
-                System.out.println("undone : " + data.getId());
+//                System.out.println("undone : " + data.getId());
                 continue;
             }
 
@@ -384,8 +366,4 @@ public class Learner {
         init();
     }
 
-    public static void main(String[] args) {
-        double[][] a = {{1.0,2.0},{3.0},{4.0}};
-        System.out.println(Arrays.toString(a));
-    }
 }

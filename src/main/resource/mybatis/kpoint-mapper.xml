@@ -11,4 +11,13 @@
         WHERE applicationid = 'zujuan' AND courseid = #{courseId}
         limit #{start}, #{limit}
     </select>
+
+    <select id="getTop20KpointIds" resultType="String">
+        SELECT qk.pointid
+        FROM question_kpoint qk
+        JOIN questions q ON qk.questionid=q.id
+        JOIN question_qmls qq ON q.id=qq.questionid
+        WHERE courseid=#{courseId} group by pointid order by count(*) desc
+        limit 0, 20
+    </select>
 </mapper>

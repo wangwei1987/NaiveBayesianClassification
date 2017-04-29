@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface QuestionDao {
 
     int getQuestionCount();
+
+    int countZujuanQuestion(int courseId);
 }

@@ -13,4 +13,6 @@ import java.util.List;
 public interface KPointDao {
 
     List<Data> getKpointIdsWithQidAndStem(@Param("courseId") int courseId, @Param("start") int start, @Param("limit") int limit);
+
+    List<String> getTop20KpointIds(int courseId);
 }

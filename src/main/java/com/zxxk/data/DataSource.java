@@ -28,7 +28,7 @@ public class DataSource {
     private List<Integer> count = new ArrayList<Integer>();                 // 词语出现的总次数
 
     private final static String driver = "com.mysql.jdbc.Driver";
-    private final static String url = "jdbc:mysql://localhost:3306/test";
+    private final static String url = "jdbc:mysql://localhost:3306/test?characterEncoding=utf8";
     private final static String username = "root";
     private final static String password = "root";
 
@@ -259,7 +259,7 @@ public class DataSource {
         System.out.println("预测成功率为：" + sucess + ", " + equal);
     }
 
-    @Test
+    //    @Test
     public List<String> fetchAllKpointId(int courseId) {
         try {
             List<String> pointIds = new ArrayList<>();
@@ -278,17 +278,23 @@ public class DataSource {
 
     @Test
     public void testExtractOraginalData() {
-        extractOraginalData("1", "0, 20000", true);
-        extractOraginalData("3", "0, 20000", true);
-
-        for (int i = 0; i < allWords.size(); i++) {
-            if (i != 0 && i % 6 == 0) {
-                System.out.println();
-            }
-
-            System.out.printf(allWords.get(i) + " :(" + count.get(i) + ", " + countInLabel1.get(i) + ", " + countInLabel2.get(i) + ") ||   ");
+//        extractOraginalData("1", "0, 20000", true);
+//        extractOraginalData("3", "0, 20000", true);
+//
+//        for (int i = 0; i < allWords.size(); i++) {
+//            if (i != 0 && i % 6 == 0) {
+//                System.out.println();
+//            }
+//
+//            System.out.printf(allWords.get(i) + " :(" + count.get(i) + ", " + countInLabel1.get(i) + ", " + countInLabel2.get(i) + ") ||   ");
+//        }
+//        System.out.println(allWords.size());
+//        evalute();
+        try {
+            PreparedStatement statement = conn.prepareStatement("INSERT INTO ml_feature1 values (\"王位\",\"_other\",500, 27)");
+            statement.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        System.out.println(allWords.size());
-        evalute();
     }
 }
