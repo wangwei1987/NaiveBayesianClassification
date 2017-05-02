@@ -53,13 +53,23 @@ public class Result {
     }
 
     public List<String> getPredictedLabels() {
+
         List<String> predictedLabels = new ArrayList<>();
-        for (int i = 0; i < scores.length; i++) {
+
+//        int otherLabelIndex = scores.length - 1;
+//        if(scores[otherLabelIndex][0] / scores[otherLabelIndex][1] > 4) {
+//            predictedLabels.add(Labels.LABEL_OTHER);
+//        }
+//        else {
+        for (int i = 0; i < scores.length - 1; i++) {
             double[] score = scores[i];
-            if (score[0] > score[1]) {
+            // 当标签选择和不选择的概率之商大于4，亦即选择的概率大于80%，不选择的概率小于20%时，此条数据才设置此标签
+            if (score[0] / score[1] >= 4) {
                 predictedLabels.add(allLabels.get(i));
             }
         }
+//        }
+
         if (predictedLabels.size() <= 0) {
             predictedLabels.add(Labels.LABEL_OTHER);
         }

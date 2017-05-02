@@ -14,4 +14,14 @@
         INSERT INTO base_info
         VALUES (#{dataSize}, #{courseId})
     </insert>
+
+    <delete id="clear">
+        DELETE FROM base_info WHERE courseid = #{courseId}
+    </delete>
+
+    <update id="update">
+        UPDATE base_info
+        SET data_size = #{dataSize}
+        WHERE courseid = #{courseId}
+    </update>
 </mapper>

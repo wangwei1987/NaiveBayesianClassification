@@ -18,4 +18,20 @@
         FROM ml_label
         WHERE courseid = #{courseId}
     </select>
+
+    <delete id="clear">
+        DELETE FROM ml_label WHERE courseid = #{courseId}
+    </delete>
+
+    <select id="get" resultType="com.zxxk.domain.Label">
+        SELECT *
+        FROM ml_label
+        WHERE courseid = #{courseId} AND name = #{name}
+    </select>
+
+    <update id="update">
+        UPDATE ml_label
+        SET count = #{count}
+        WHERE courseid = #{courseId} AND name = #{name}
+    </update>
 </mapper>

@@ -19,6 +19,12 @@
         WHERE name = #{name} AND label = #{label} AND courseid = #{courseId}
     </select>
 
+    <select id="getAll" resultType="com.zxxk.domain.Feature">
+        SELECT name, group_concat(count) FROM ml_feature
+        WHERE courseid = #{courseId}
+        GROUP BY name
+    </select>
+
     <update id="plusCount">
         UPDATE ml_feature
         SET count = count + #{count}
@@ -30,4 +36,8 @@
         FROM ml_feature
         WHERE name = #{name}
     </select>
+
+    <delete id="clear">
+        delete from ml_feature WHERE courseid = #{courseId}
+    </delete>
 </mapper>

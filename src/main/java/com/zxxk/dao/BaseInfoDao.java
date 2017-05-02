@@ -12,4 +12,8 @@ public interface BaseInfoDao {
     BaseInfo get(int courseId);
 
     void insert(BaseInfo baseInfo);
+
+    void clear(int courseId);
+
+    void update(BaseInfo baseInfo);
 }

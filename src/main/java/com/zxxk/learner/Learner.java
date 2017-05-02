@@ -200,7 +200,7 @@ public class Learner {
             }
 
             // 初始化labelValue
-            double[][] labelValue = new double[labels.size() - 1][2];
+            double[][] labelValue = new double[labels.size()][2];
             for (int i = 0; i < labelValue.length; i++) {
                 labelValue[i][0] = 1.0 * labels.getCount(i);
                 labelValue[i][1] = 1.0 * (trainingData.size() - labels.getCount(i));
@@ -212,19 +212,34 @@ public class Learner {
                 int featureIndex = features.indexOf(feature);
                 if (featureIndex < 0) continue;
 
-                for (int i = 1; i < labels.size(); i++) {
+                for (int i = 0; i < labels.size(); i++) {
 
-                    int presentCount = features.getCounts(i).get(featureIndex);
-                    labelValue[i-1][0] *= presentCount == 0 ?
-                            0.1 / labels.getCount(data.getLabel()) :
-                            presentCount * 1.0 / labels.getCount(data.getLabel());
 
-                    int absentCount = features.getCounts(0).get(featureIndex) - presentCount;
-                    int absentTotal = trainingData.size() - labels.getCount(data.getLabel());
-                    if (absentCount < 0 || absentTotal < 0) {
-                        System.out.println(111);
+                    int presentCount = features.getCounts(i + 1).get(featureIndex);
+                    if (data.getId().equals("1569739163893760")) {
+                        System.out.printf(feature);
+                        System.out.printf(", presentCount : " + presentCount);
+                        System.out.printf(", labelcount : " + labels.getCount(i));
+                        System.out.println();
                     }
-                    labelValue[i-1][1] *= absentCount == 0 ?
+//                    labelValue[i-1][0] *= presentCount == 0 ?
+//                            0.1 / labels.getCount(data.getLabel()) :
+//                            presentCount * 1.0 / labels.getCount(data.getLabel());
+                    labelValue[i][0] *= presentCount == 0 ?
+                            0.1 / labels.getCount(data.getLabel()) :
+                            presentCount * 1.0 / labels.getCount(i);
+
+                    int absentCount = features.getCounts(0).get(featureIndex);
+//                    int absentTotal = trainingData.size() - labels.getCount(data.getLabel());
+                    int absentTotal = trainingData.size() - labels.getCount(i);
+                    if (data.getId().equals("1569739163893760")) {
+                        System.out.printf(", absentCount : " + absentCount);
+                        System.out.printf(", featuresCounts : " + features.getCounts(0).get(featureIndex));
+                        System.out.printf(", trainingDataSize : " + trainingData.size());
+                        System.out.printf(", absentTotal : " + absentTotal);
+                        System.out.println("======================");
+                    }
+                    labelValue[i][1] *= absentCount == 0 ?
                             0.1 / absentTotal :
                             absentCount * 1.0 / absentTotal;
 
@@ -234,21 +249,23 @@ public class Learner {
             }
             Result result = new Result(data.getId(), data.getLabels(), labelValue, labels.getNames());
             results.add(result);
-//            for(int i=0; i<labelValue.length; i++) {
-//                double[] values = labelValue[i];
-//
-//                if (getMax(values).isMulti()) {
-//                    evaluationResult.undonePlus();
-//                    System.out.println(i+" undone : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
-//                } else if (labels.get(getMax(values).getIndex()).equals(data.getLabel())) {
-//                    evaluationResult.successPlus();
-//                    System.out.println(i+" success : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
-//                } else {
-//                    evaluationResult.failedPlus();
-//                    System.err.println(i+" failed : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
-//                }
-//            }
-//            System.out.println("==========================");
+
+            for (int i = 0; i < labelValue.length; i++) {
+                double[] values = labelValue[i];
+//                System.out.println(labels.get(i)+", "+data.getId()+" value : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+
+                if (getMax(values).isMulti()) {
+                    evaluationResult.undonePlus();
+                    System.out.println(i + " undone : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                } else if (labels.get(getMax(values).getIndex()).equals(data.getLabel())) {
+                    evaluationResult.successPlus();
+                    System.out.println(i + " success : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                } else {
+                    evaluationResult.failedPlus();
+                    System.err.println(i + " failed : " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                }
+            }
+            System.out.println("==========================");
         }
 //        EvaluationResult evaluationResult1 = new EvaluationResult();
         try {

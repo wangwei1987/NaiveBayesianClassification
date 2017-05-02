@@ -21,4 +21,6 @@ public interface FeatureDao {
     List<Feature> getByName(String name);
 
     void plusCount(Feature feature);
+
+    void clear(int courseId);
 }

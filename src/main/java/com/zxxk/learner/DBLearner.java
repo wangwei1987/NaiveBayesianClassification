@@ -8,15 +8,17 @@ import com.zxxk.domain.Data;
 import com.zxxk.domain.Feature;
 import com.zxxk.domain.Label;
 import com.zxxk.exception.ClassificationException;
+import com.zxxk.service.BaseInfoService;
 import com.zxxk.util.MaxValuedLabel;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class DBLearner {
+
+    private BlockingQueue queue = new ArrayBlockingQueue(15000);
 
     // 标签
 //    private Labels labels;
@@ -48,36 +52,26 @@ public class DBLearner {
     private FeatureDao featureDao;
     @Resource
     private LabelDao labelDao;
-
-//    private void init() {
-//        features = new Features(labels.size());
-//    }
-
-//    public DBLearner(List<Data> trainingData, List<Data> testingData, Labels labels) {
-//        if (CollectionUtils.isEmpty(trainingData) || CollectionUtils.isEmpty(testingData)) {
-//            throw new ClassificationException("training data, testing data shouldn't be empty!");
-//        }
-//        this.trainingData = trainingData;
-//        this.testingData = testingData;
-//        this.labels = labels;
-//        init();
-//    }
-//
-//    public DBLearner(List<Data> trainingData, Labels labels) {
-//        if (CollectionUtils.isEmpty(trainingData)) {
-//            throw new ClassificationException("training data shouldn't be empty!");
-//        }
-//        this.trainingData = trainingData;
-//        this.labels = labels;
-//        init();
-//    }
+    @Resource
+    private BaseInfoDao baseInfoDao;
+    @Resource
+    private LearnerSaver learnerSaver;
+    @Resource
+    private BaseInfoService baseInfoService;
 
     public DBLearner() {
 
     }
 
-    @Transactional
-    public void train() {
+    //    @Transactional
+    public void train(boolean append) {
+        if (!append) {
+            // 训练前先删除上次的训练结果
+            featureDao.clear(courseId);
+            labelDao.clear(courseId);
+            baseInfoDao.clear(courseId);
+        }
+
         for (Data data : trainingData) {
 
             data.setLabels(filterValidLabels(data.getLabels()));
@@ -99,31 +93,50 @@ public class DBLearner {
                 labelsOfData = new ArrayList<>();
                 labelsOfData.add(Labels.LABEL_OTHER);
             } else {
-                // clear invalid labels
+                // clear invalid laels
                 data.setLabels(filterValidLabels(labelsOfData));
                 labelsOfData = data.getLabels();
             }
 
             for (String feature : featuresInData) {
+
                 addFeatureCount(courseId + SEPERATOR + feature + SEPERATOR + "_total");
                 for (String label : labelsOfData) {
                     addFeatureCount(courseId + SEPERATOR + feature + SEPERATOR + label);
                 }
             }
-            if (featureToRestore.size() > 5000) {
-                restoreFeatures(featureToRestore);
+            if (featureToRestore.size() > 10000) {
+                learnerSaver.setCourseId(courseId);
+                learnerSaver.restoreFeatures(featureToRestore);
                 featureToRestore.clear();
             }
         }
-        restoreLabels(labelToRestore);
+        learnerSaver.restoreLabels(labels, labelToRestore);
 
         long start = System.currentTimeMillis();
-        restoreFeatures(featureToRestore);
+        learnerSaver.restoreFeatures(featureToRestore);
         long end = System.currentTimeMillis();
         System.out.println("保存用时 ： " + (end - start) / 1000);
 
-        baseInfoDao.insert(new BaseInfo(courseId, trainingData.size()));
+
+//        BaseInfo baseInfo = baseInfoDao.get(courseId);
+//        if(baseInfo == null) {
+//            baseInfoDao.insert(new BaseInfo(courseId, trainingData.size()));
+//        }
+//        else {
+//            baseInfo.setDataSize(baseInfo.getDataSize() + trainingData.size());
+//            baseInfoDao.update(baseInfo);
+//        }
+        baseInfoService.save(courseId, trainingData.size());
+
         featureToRestore.clear();
+        int i = 0;
+        for (Map.Entry<String, Integer> feature : featureToRestore.entrySet()) {
+            if (i != 0 && i % 6 == 0) {
+                System.out.println();
+            }
+            String countsStr = " : (";
+        }
 //        for (int i = 0; i < features.size(); i++) {
 //            if (i != 0 && i % 6 == 0) {
 //                System.out.println();
@@ -134,7 +147,7 @@ public class DBLearner {
 //            }
 //            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
 //        }
-        System.out.println();
+//        System.out.println();
     }
 
     private void addFeatureCount(String key) {
@@ -145,58 +158,6 @@ public class DBLearner {
         }
     }
 
-    @Transactional()
-    private void restoreFeatures(Map<String, Integer> featuresToStore) {
-        for (Map.Entry<String, Integer> entry : featuresToStore.entrySet()) {
-            String[] props = entry.getKey().split(SEPERATOR);
-            Feature feature = new Feature(Integer.valueOf(props[0]), props[1], props[2], entry.getValue());
-
-            Feature featureInDB = featureDao.get(Integer.valueOf(props[0]), props[1], props[2]);
-            if (featureInDB == null) {
-                featureDao.insert(feature);
-            } else {
-                featureDao.plusCount(feature);
-            }
-        }
-    }
-
-    @Transactional
-    private void restoreLabels(Map<String, Integer> labelToStore) {
-        for (String labelName : labels) {
-            Label label = null;
-            Integer labelCount = labelToStore.get(labelName);
-            if (labelCount != null) {
-                label = new Label(courseId, labelName, labelCount);
-            } else {
-                label = new Label(courseId, labelName, 0);
-            }
-            labelDao.insert(label);
-        }
-
-
-//        for (Map.Entry<String, Integer> entry : labelToStore.entrySet()) {
-//            Label label = new Label(entry.getKey(), entry.getValue());
-//            labelDao.insert(label);
-//        }
-//        // 某些标签在训练数据中没有出现过，这些标签也要存入数据库
-//        List<String> copiedLabels = new ArrayList<>(Arrays.asList(new String[labels.size()]));
-//        Collections.copy(copiedLabels, labels);
-//        copiedLabels.removeAll(labelToStore.entrySet());
-//        if(copiedLabels.size() > 0) {
-//            copiedLabels.stream().forEach(labelName -> {
-//                Label label = new Label(labelName, 0);
-//                labelDao.insert(label);
-//            });
-//        }
-
-//        for (int i = 0; i < labelToStore.getNames().size(); i++) {
-//            Label label = new Label(labelToStore.get(i), labelToStore.getCount(i));
-//            labelDao.insert(label);
-//        }
-    }
-
-    @Resource
-    private BaseInfoDao baseInfoDao;
 
     public EvaluationResult multiLabelEvaluate() {
 
@@ -233,7 +194,7 @@ public class DBLearner {
             }
 
             // 初始化labelValue
-            double[][] labelValue = new double[labels.size() - 1][2];
+            double[][] labelValue = new double[labels.size()][2];
             for (int i = 0; i < labelValue.length; i++) {
                 labelValue[i][0] = 1.0 * labelList.get(i).getCount();
                 labelValue[i][1] = 1.0 * (baseInfo.getDataSize() - labelList.get(i).getCount());
@@ -252,19 +213,28 @@ public class DBLearner {
                                 feature1 -> courseId + SEPERATOR + feature1.getName() + SEPERATOR + feature1.getLabel(),
                                 feature1 -> feature1.getCount()));
 
-                for (int i = 1; i < labelList.size(); i++) {
+
+                for (int i = 0; i < labelList.size(); i++) {
 
 //                    int presentCount = features.getCounts(i).get(featureIndex);
                     // 当前标签下，此特征出现的概率
                     String keyOfCurLabel = courseId + SEPERATOR + featureName + SEPERATOR + labelList.get(i).getName();
                     double presentCount = featureMap.get(keyOfCurLabel) == null ? 0.1 : featureMap.get(keyOfCurLabel);
-                    labelValue[i - 1][0] *= presentCount / labelList.get(i).getCount();
+                    if (data.getId().equals("1570736451715072")) {
+                        System.out.println("present : " + featureName + ", " + labelList.get(i).getName() + ", " + (presentCount / labelList.get(i).getCount()));
+                    }
+                    labelValue[i][0] *= presentCount / labelList.get(i).getCount();
 
                     // 非当前标签下，此特征出现的概率
                     String keyOfTotal = courseId + SEPERATOR + featureName + SEPERATOR + "_total";
+
                     double absentCount = featureMap.get(keyOfTotal) - presentCount;
                     double absentTotal = baseInfo.getDataSize() - labelList.get(i).getCount();
-                    labelValue[i - 1][1] *= absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal;
+                    if (data.getId().equals("1570736451715072")) {
+                        System.out.println("absent : " + featureName + ", " + labelList.get(i).getName() + ", " + (absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal));
+                        System.out.println("===================================");
+                    }
+                    labelValue[i][1] *= absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal;
 
                 }
                 // 平衡label中的值，使得里面的值不会太小
@@ -273,9 +243,16 @@ public class DBLearner {
             Result result = new Result(data.getId(), data.getLabels(), labelValue, labelNames);
             results.add(result);
 
+            for (int i = 0; i < labelValue.length; i++) {
+                double[] values = labelValue[i];
+                if (data.getId().equals("1570736451715072")) {
+                    System.out.println(labels.get(i) + ", " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+                }
+            }
+//            System.out.println("==========================");
         }
         try {
-            FileWriter fileWriter = new FileWriter("/home/wangwei/Dev/data/result.txt", false);
+            FileWriter fileWriter = new FileWriter("/home/wangwei/Dev/data/result1.txt", false);
 
             for (Result result : results) {
                 fileWriter.append(result.getId() + ", " + result.getLabels());

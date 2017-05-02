@@ -9,6 +9,7 @@ import com.zxxk.learner.DBLearner;
 import com.zxxk.learner.EvaluationResult;
 import com.zxxk.learner.Labels;
 import com.zxxk.learner.Learner;
+import org.apache.commons.collections4.CollectionUtils;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
@@ -159,8 +160,31 @@ public class Main {
         Labels labels = new Labels(labelNames);
         dbLearner.setLabels(labelNames);
         dbLearner.setCourseId(courseId);
-        dbLearner.train();
+        dbLearner.train(false);
         System.out.println(dbLearner.multiLabelEvaluate());
+    }
+
+    public void batchTrain(int courseId, List<String> labelNames, int batchSize) {
+        int i = 0;
+        do {
+            System.out.println("batch index : " + i);
+            List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, batchSize * i++, batchSize);
+            // 如果没有更多数据了，则退出循环
+            if (CollectionUtils.isEmpty(trainingDatas)) {
+                break;
+            }
+
+            for (Data data : trainingDatas) data.buildLabelsAndFeatures();
+
+            dbLearner.setTrainingData(trainingDatas);
+
+            dbLearner.setLabels(labelNames);
+            dbLearner.setCourseId(courseId);
+            dbLearner.train(true);
+            System.out.println("finish training!");
+//            System.out.println(dbLearner.multiLabelEvaluate());
+        } while (true);
+
     }
 
     public static void main(String[] args) {
@@ -200,13 +224,16 @@ public class Main {
 //            int trainingSize = total * 9 / 200;
 //            int testingSize = total / 200;
 
-            int trainingSize = 100;
-            int testingSize = 10;
+//            List<String> labels = random6Items(kPointDao.getTop20KpointIds(26));
+
+            int trainingSize = 200000;
+            int testingSize = 20000;
 
             List<String> labels = new ArrayList<String>(Arrays.asList("10454", "10467", "11384", "11056", "11097", "11391"));
             System.out.println("courseId : " + courseId + ", training size : " + trainingSize + ", testing size : " + testingSize);
             System.out.println("labels : " + labels);
-            main.start1(courseId, trainingSize, trainingSize, labels);
+//            main.start1(courseId, trainingSize, testingSize, labels);
+            main.batchTrain(courseId, kPointDao.getAllKpointIds(courseId), 5000);
             System.out.println("courseId : " + courseId + ", training size : " + trainingSize + ", testing size : " + testingSize);
             System.out.println("labels : " + labels);
             System.out.println("========================================================");
@@ -234,7 +261,7 @@ public class Main {
         dbLearner.setCourseId(27);
         dbLearner.setTrainingData(trainingData);
         dbLearner.setLabels(labels);
-        dbLearner.train();
+        dbLearner.train(false);
     }
 
     public static void main1(String[] args) {
