@@ -1,5 +1,10 @@
 package com.zxxk.data;
 
+import com.zxxk.exception.ClassificationException;
+import com.zxxk.util.SentenceAnalyzer;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -9,11 +14,15 @@ public class Data {
 
     private String id;
 
+    private String stem;
+
+    private String pointIds;
+
     private List<String> features;
 
-    private String label;
+//    private String label;
 
-    private List<String> labels;
+    private List<String> labels = new ArrayList<>();
 
     public String getId() {
         return id;
@@ -24,11 +33,15 @@ public class Data {
     }
 
     public String getLabel() {
-        return label;
+        if (labels.size() <= 0) {
+            throw new ClassificationException("this data has no labes!");
+        }
+        return labels.get(0);
     }
 
     public void setLabel(String label) {
-        this.label = label;
+        labels = new ArrayList<>();
+        this.labels.add(label);
     }
 
     public List<String> getFeatures() {
@@ -45,5 +58,26 @@ public class Data {
 
     public void setLabels(List<String> labels) {
         this.labels = labels;
+    }
+
+    public String getStem() {
+        return stem;
+    }
+
+    public void setStem(String stem) {
+        this.stem = stem;
+    }
+
+    public String getPointIds() {
+        return pointIds;
+    }
+
+    public void setPointIds(String pointIds) {
+        this.pointIds = pointIds;
+    }
+
+    public void buildLabelsAndFeatures() {
+        this.setLabels(Arrays.asList(pointIds.split(",")));
+        this.setFeatures(SentenceAnalyzer.analyze(this.getStem()));
     }
 }

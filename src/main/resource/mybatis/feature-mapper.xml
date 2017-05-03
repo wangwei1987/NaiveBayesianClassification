@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zxxk.dao.FeatureDao">
+
+    <insert id="insert">
+        INSERT INTO ml_feature
+        VALUES (#{name}, #{label}, #{count}, #{courseId})
+    </insert>
+
+    <insert id="insertAll">
+
+    </insert>
+
+    <select id="get" resultType="com.zxxk.domain.Feature">
+        SELECT *
+        FROM ml_feature
+        WHERE name = #{name} AND label = #{label} AND courseid = #{courseId}
+    </select>
+
+    <select id="getAll" resultType="com.zxxk.domain.Feature">
+        SELECT name, group_concat(count) FROM ml_feature
+        WHERE courseid = #{courseId}
+        GROUP BY name
+    </select>
+
+    <update id="plusCount">
+        UPDATE ml_feature
+        SET count = count + #{count}
+        WHERE name = #{name} AND label = #{label} AND courseid = #{courseId}
+    </update>
+
+    <select id="getByName" resultType="com.zxxk.domain.Feature">
+        SELECT *
+        FROM ml_feature
+        WHERE name = #{name}
+    </select>
+
+    <delete id="clear">
+        delete from ml_feature WHERE courseid = #{courseId}
+    </delete>
+</mapper>

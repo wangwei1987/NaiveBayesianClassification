@@ -1,4 +1,4 @@
-package com.zxxk.learner;
+package com.zxxk.evaluator;
 
 /**
  * 对测试集验证的结果
@@ -11,6 +11,8 @@ public class EvaluationResult {
     private int failed;
 
     private int undone;
+
+    private String accuracy;
 
     public void successPlus() {
         this.success++;
@@ -26,10 +28,12 @@ public class EvaluationResult {
 
     @Override
     public String toString() {
+        accuracy = (success * 100.0 / (success + failed + undone)) + "%";
         return "EvaluationResult{" +
                 "success=" + success +
                 ", failed=" + failed +
                 ", undone=" + undone +
+                ", accuracy=" + accuracy +
                 '}';
     }
 }

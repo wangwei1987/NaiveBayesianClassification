@@ -1,4 +1,4 @@
-package com.zxxk.data;
+package com.zxxk.learner;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +47,11 @@ public class Features {
 
     public void addFeature(String feature) {
         names.add(feature);
+        // init counts
+        counts.get(0).add(1);
+        for(int i = 1; i < counts.size(); i++) {
+            counts.get(i).add(0);
+        }
     }
 
     public void initCount(int index, int count) {
@@ -72,4 +77,5 @@ public class Features {
     public String getFeature(int index) {
         return names.get(index);
     }
+
 }

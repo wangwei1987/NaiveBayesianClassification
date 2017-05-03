@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zxxk.dao.KPointDao">
+
+    <select id="getKpointIdsWithQidAndStem" resultType="com.zxxk.data.Data">
+        SELECT q.id, qq.stem, qk.pointids FROM question_kpoints qk
+        JOIN questions q on qk.questionid = q.id
+        JOIN question_qmls qq on qk.questionid = qq.questionid
+        WHERE applicationid = 'zujuan' AND courseid = #{courseId}
+        limit #{start}, #{limit}
+    </select>
+
+    <select id="getTop20KpointIds" resultType="String">
+        SELECT qk.pointid
+        FROM question_kpoint qk
+        JOIN questions q ON qk.questionid=q.id
+        JOIN question_qmls qq ON q.id=qq.questionid
+        WHERE courseid=#{courseId} group by pointid order by count(*) desc
+        limit 0, 20
+    </select>
+
+    <select id="getAllKpointIds" resultType="String">
+        SELECT id
+        FROM knowledge_points
+        WHERE courseid = #{courseId}
+    </select>
+
+</mapper>
