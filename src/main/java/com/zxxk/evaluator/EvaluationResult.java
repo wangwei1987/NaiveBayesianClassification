@@ -1,4 +1,4 @@
-package com.zxxk.learner;
+package com.zxxk.evaluator;
 
 /**
  * 对测试集验证的结果

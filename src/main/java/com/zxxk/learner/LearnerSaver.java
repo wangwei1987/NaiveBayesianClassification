@@ -1,38 +1,40 @@
 package com.zxxk.learner;
 
+import com.zxxk.dao.BaseInfoDao;
 import com.zxxk.dao.FeatureDao;
 import com.zxxk.dao.LabelDao;
+import com.zxxk.domain.BaseInfo;
 import com.zxxk.domain.Feature;
 import com.zxxk.domain.Label;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import trainer.NaiveBayesianTrainer;
 
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * 提供保存学习成果到数据库的方法
  * Created by wangwei on 17-5-2.
  */
-@Service
+@Component
 public class LearnerSaver {
-
-    private static final String SEPERATOR = "###";
-
-    private int courseId;
 
     @Resource
     private FeatureDao featureDao;
     @Resource
     private LabelDao labelDao;
+    @Resource
+    private BaseInfoDao baseInfoDao;
 
     @Transactional
-    public void restoreFeatures(Map<String, Integer> featuresToStore) {
+    public void saveFeatures(int courseId, Map<String, Integer> featuresToStore) {
         for (Map.Entry<String, Integer> entry : featuresToStore.entrySet()) {
-            String[] props = entry.getKey().split(SEPERATOR);
-            Feature feature = new Feature(Integer.valueOf(props[0]), props[1], props[2], entry.getValue());
+            String[] props = entry.getKey().split(NaiveBayesianTrainer.SEPERATOR);
+            Feature feature = new Feature(courseId, props[0], props[1], entry.getValue());
 
-            Feature featureInDB = featureDao.get(Integer.valueOf(props[0]), props[1], props[2]);
+            Feature featureInDB = featureDao.get(courseId, props[0], props[1]);
             if (featureInDB == null) {
                 featureDao.insert(feature);
             } else {
@@ -42,7 +44,7 @@ public class LearnerSaver {
     }
 
     @Transactional
-    public void restoreLabels(List<String> allLabels, Map<String, Integer> labelToStore) {
+    public void saveLabels(int courseId, List<String> allLabels, Map<String, Integer> labelToStore) {
         for (String labelName : allLabels) {
             Label label = null;
             Integer labelCount = labelToStore.get(labelName);
@@ -60,34 +62,24 @@ public class LearnerSaver {
                 labelDao.update(label);
             }
         }
-
-
-//        for (Map.Entry<String, Integer> entry : labelToStore.entrySet()) {
-//            Label label = new Label(entry.getKey(), entry.getValue());
-//            labelDao.insert(label);
-//        }
-//        // 某些标签在训练数据中没有出现过，这些标签也要存入数据库
-//        List<String> copiedLabels = new ArrayList<>(Arrays.asList(new String[labels.size()]));
-//        Collections.copy(copiedLabels, labels);
-//        copiedLabels.removeAll(labelToStore.entrySet());
-//        if(copiedLabels.size() > 0) {
-//            copiedLabels.stream().forEach(labelName -> {
-//                Label label = new Label(labelName, 0);
-//                labelDao.insert(label);
-//            });
-//        }
-
-//        for (int i = 0; i < labelToStore.getNames().size(); i++) {
-//            Label label = new Label(labelToStore.get(i), labelToStore.getCount(i));
-//            labelDao.insert(label);
-//        }
     }
 
-    public int getCourseId() {
-        return courseId;
+    @Transactional
+    public void saveBaseInfo(int courseId, int trainingDataSize) {
+        BaseInfo baseInfo = baseInfoDao.get(courseId);
+        if (baseInfo == null) {
+            baseInfoDao.insert(new BaseInfo(courseId, trainingDataSize));
+        } else {
+            baseInfo.setDataSize(baseInfo.getDataSize() + trainingDataSize);
+            baseInfoDao.update(baseInfo);
+        }
     }
 
-    public void setCourseId(int courseId) {
-        this.courseId = courseId;
+    @Transactional
+    public void saveAll(int courseId, int trainingDataSize, Map<String, Integer> featuresToStore, List<String> allLabels, Map<String, Integer> labelsTostore) {
+        saveBaseInfo(courseId, trainingDataSize);
+        saveFeatures(courseId, featuresToStore);
+        saveLabels(courseId, allLabels, labelsTostore);
     }
+
 }

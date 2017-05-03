@@ -1,6 +1,6 @@
 package com.zxxk.dao;
 
-import com.zxxk.domain.Data;
+import com.zxxk.data.Data;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 

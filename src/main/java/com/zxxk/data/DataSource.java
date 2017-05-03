@@ -1,6 +1,5 @@
 package com.zxxk.data;
 
-import com.zxxk.domain.Data;
 import com.zxxk.util.SentenceAnalyzer;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;

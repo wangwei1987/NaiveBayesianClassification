@@ -1,164 +1,42 @@
-package com.zxxk.learner;
+package com.zxxk.evaluator;
 
 import com.zxxk.dao.BaseInfoDao;
-import com.zxxk.dao.FeatureDao;
-import com.zxxk.dao.LabelDao;
 import com.zxxk.data.Data;
 import com.zxxk.domain.BaseInfo;
 import com.zxxk.domain.Feature;
 import com.zxxk.domain.Label;
-import com.zxxk.evaluator.EvaluationResult;
-import com.zxxk.evaluator.MultiLabelPrediction;
 import com.zxxk.exception.ClassificationException;
-import com.zxxk.util.MaxValuedLabel;
+import com.zxxk.learner.Result;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Created by shiti on 17-4-20.
+ * Created by wangwei on 17-5-2.
  */
-@Service
-public class DBLearner {
-
-    private BlockingQueue queue = new ArrayBlockingQueue(15000);
-
-    // 标签
-//    private Labels labels;
-
-//    private Features features;
+public abstract class NaiveBayesianEvaluator implements Evaluator {
 
     private List<String> labels;
 
-    private List<Data> trainingData;
+    private int trainingDataSize;
 
-    private List<Data> testingData;
-
-    private int courseId;
-
-    private Map<String, Integer> featureToRestore = new HashMap<>();
-
-    private Map<String, Integer> labelToRestore = new HashMap<>();
-
-    private static final String SEPERATOR = "###";
-
-    @Resource
-    private FeatureDao featureDao;
-    @Resource
-    private LabelDao labelDao;
     @Resource
     private BaseInfoDao baseInfoDao;
-    @Resource
-    private LearnerSaver learnerSaver;
 
-    public DBLearner() {
-
+    @Override
+    public MultiLabelPrediction predictMultiLabel(Data data) {
+        return null;
     }
 
-    //    @Transactional
-    public void train(boolean append) {
-        if (!append) {
-            // 训练前先删除上次的训练结果
-            featureDao.clear(courseId);
-            labelDao.clear(courseId);
-            baseInfoDao.clear(courseId);
-        }
-
-        for (Data data : trainingData) {
-
-            data.setLabels(filterValidLabels(data.getLabels()));
-
-            data.getLabels().stream().forEach(label -> {
-                if (labelToRestore.containsKey(label)) {
-                    labelToRestore.put(label, labelToRestore.get(label) + 1);
-                } else {
-                    labelToRestore.put(label, 1);
-                }
-            });
-
-            List<String> featuresInData = data.getFeatures();
-            List<String> labelsOfData = data.getLabels();
-
-            // labels is empty or invalid, set the label to _other
-            if (CollectionUtils.isEmpty(labelsOfData)) {
-                // if label is empty, set its label to _other
-                labelsOfData = new ArrayList<>();
-                labelsOfData.add(Labels.LABEL_OTHER);
-            } else {
-                // clear invalid laels
-                data.setLabels(filterValidLabels(labelsOfData));
-                labelsOfData = data.getLabels();
-            }
-
-            for (String feature : featuresInData) {
-
-                addFeatureCount(courseId + SEPERATOR + feature + SEPERATOR + "_total");
-                for (String label : labelsOfData) {
-                    addFeatureCount(courseId + SEPERATOR + feature + SEPERATOR + label);
-                }
-            }
-            if (featureToRestore.size() > 10000) {
-                learnerSaver.saveFeatures(courseId, featureToRestore);
-                featureToRestore.clear();
-            }
-        }
-        learnerSaver.saveLabels(courseId, labels, labelToRestore);
-
-        long start = System.currentTimeMillis();
-        learnerSaver.saveFeatures(courseId, featureToRestore);
-        long end = System.currentTimeMillis();
-        System.out.println("保存用时 ： " + (end - start) / 1000);
-
-
-//        BaseInfo baseInfo = baseInfoDao.get(courseId);
-//        if(baseInfo == null) {
-//            baseInfoDao.insert(new BaseInfo(courseId, trainingData.size()));
-//        }
-//        else {
-//            baseInfo.setDataSize(baseInfo.getDataSize() + trainingData.size());
-//            baseInfoDao.update(baseInfo);
-//        }
-        learnerSaver.saveBaseInfo(courseId, trainingData.size());
-
-        featureToRestore.clear();
-        int i = 0;
-        for (Map.Entry<String, Integer> feature : featureToRestore.entrySet()) {
-            if (i != 0 && i % 6 == 0) {
-                System.out.println();
-            }
-            String countsStr = " : (";
-        }
-//        for (int i = 0; i < features.size(); i++) {
-//            if (i != 0 && i % 6 == 0) {
-//                System.out.println();
-//            }
-//            String countsStr = " : (";
-//            for (int j = 0; j < features.getAllCounts().size(); j++) {
-//                countsStr += features.getCounts(j).get(i) + ", ";
-//            }
-//            System.out.printf(features.getFeature(i) + countsStr + ") |||  ");
-//        }
-//        System.out.println();
-    }
-
-    private void addFeatureCount(String key) {
-        if (featureToRestore.containsKey(key)) {
-            featureToRestore.put(key, featureToRestore.get(key) + 1);
-        } else {
-            featureToRestore.put(key, 1);
-        }
-    }
-
-
-    public EvaluationResult multiLabelEvaluate() {
-
+    @Override
+    public EvaluationResult evaluateMultiLabel(List<Data> testingData) {
 
         List<Result> results = new ArrayList<>();
         if (CollectionUtils.isEmpty(testingData)) {
@@ -286,89 +164,5 @@ public class DBLearner {
         return evaluationResult;
     }
 
-    public MultiLabelPrediction predict() {
-        return null;
-    }
 
-
-    private void balanceValue(double[][] arrs) {
-        for (double[] arr : arrs) {
-            balanceArrayValue(arr);
-        }
-    }
-
-    /**
-     * 使数组中最大的值不小于1
-     *
-     * @param arr
-     */
-    private void balanceArrayValue(double[] arr) {
-        if (arr[getMax(arr).getIndex()] < 1) {
-            for (int i = 0; i < arr.length; i++) {
-                arr[i] *= 10;
-            }
-            balanceArrayValue(arr);
-        }
-    }
-
-    private MaxValuedLabel getMax(double[] arr) {
-        int maxIndex = 0;
-        boolean multi = false;
-        for (int i = 1; i < arr.length; i++) {
-            if (arr[i] > arr[maxIndex]) {
-                maxIndex = i;
-                multi = false;
-            } else if (arr[i] == arr[maxIndex]) {
-                multi = true;
-            }
-        }
-        return new MaxValuedLabel(maxIndex, multi);
-    }
-
-    private List<String> filterValidLabels(List<String> labelsOfData) {
-        // clear invalid labels
-        List<String> finalLabels = new ArrayList<>();
-        for (String label : labelsOfData) {
-            if (labels.indexOf(label) >= 0) {
-                finalLabels.add(label);
-            }
-        }
-        if (CollectionUtils.isEmpty(finalLabels)) {
-            finalLabels.add(Labels.LABEL_OTHER);
-        }
-        return finalLabels;
-    }
-
-    public List<Data> getTrainingData() {
-        return trainingData;
-    }
-
-    public void setTrainingData(List<Data> trainingData) {
-        this.trainingData = trainingData;
-    }
-
-    public List<Data> getTestingData() {
-        return testingData;
-    }
-
-    public void setTestingData(List<Data> testingData) {
-        this.testingData = testingData;
-    }
-
-    public List<String> getLabels() {
-        return labels;
-    }
-
-    public void setLabels(List<String> labels) {
-        this.labels = labels;
-    }
-
-
-    public int getCourseId() {
-        return courseId;
-    }
-
-    public void setCourseId(int courseId) {
-        this.courseId = courseId;
-    }
 }

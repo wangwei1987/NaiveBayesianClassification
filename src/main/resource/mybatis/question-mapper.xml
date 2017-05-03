@@ -6,7 +6,7 @@
 
     <cache/>
 
-    <select id="getQuestionCount" resultType="com.zxxk.domain.Data">
+    <select id="getQuestionCount" resultType="com.zxxk.data.Data">
         SELECT count(*) FROM questions
     </select>
 

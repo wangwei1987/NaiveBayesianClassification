@@ -1,4 +1,4 @@
-package com.zxxk.domain;
+package com.zxxk.data;
 
 import com.zxxk.exception.ClassificationException;
 import com.zxxk.util.SentenceAnalyzer;
