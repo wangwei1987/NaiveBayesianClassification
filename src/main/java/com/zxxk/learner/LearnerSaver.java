@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import trainer.NaiveBayesianTrainer;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -30,17 +32,27 @@ public class LearnerSaver {
 
     @Transactional
     public void saveFeatures(int courseId, Map<String, Integer> featuresToStore) {
-        for (Map.Entry<String, Integer> entry : featuresToStore.entrySet()) {
+        int i = 0;
+        List<Feature> insertFeatures = new ArrayList<>();
+
+        Iterator iterator = featuresToStore.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Integer> entry = (Map.Entry<String, Integer>) iterator.next();
+            i++;
             String[] props = entry.getKey().split(NaiveBayesianTrainer.SEPERATOR);
             Feature feature = new Feature(courseId, props[0], props[1], entry.getValue());
 
-            Feature featureInDB = featureDao.get(courseId, props[0], props[1]);
-            if (featureInDB == null) {
-                featureDao.insert(feature);
-            } else {
-                featureDao.plusCount(feature);
-            }
+            insertFeatures.add(feature);
         }
+        long startSave = System.currentTimeMillis();
+        featureDao.insertAll(insertFeatures);
+        long endSave = System.currentTimeMillis();
+        System.out.println("insert All time : " + (endSave - startSave));
+    }
+
+    @Transactional
+    public void saveFeatures(List<Feature> features) {
+        featureDao.insertAll(features);
     }
 
     @Transactional

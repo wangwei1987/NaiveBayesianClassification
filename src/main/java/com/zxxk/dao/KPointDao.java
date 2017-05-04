@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface KPointDao {
 
-    List<Data> getKpointIdsWithQidAndStem(@Param("courseId") int courseId, @Param("start") int start, @Param("limit") int limit);
+    List<Data> getKpointIdsWithQidAndStem(@Param("courseId") int courseId, @Param("start") int start, @Param("limit") int limit, @Param("labelNames") List<String> labelNames);
 
     List<String> getTop20KpointIds(int courseId);
 

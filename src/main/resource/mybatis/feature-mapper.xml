@@ -10,7 +10,10 @@
     </insert>
 
     <insert id="insertAll">
-
+        INSERT INTO ml_feature VALUES
+        <foreach collection="list" item="feature" separator=",">
+            (#{feature.name}, #{feature.label}, #{feature.count}, #{feature.courseId})
+        </foreach>
     </insert>
 
     <select id="get" resultType="com.zxxk.domain.Feature">
@@ -39,5 +42,16 @@
 
     <delete id="clear">
         delete from ml_feature WHERE courseid = #{courseId}
+    </delete>
+
+    <update id="updateAll">
+
+    </update>
+
+    <delete id="deleteAll">
+        DELETE FROM ml_feature WHERE
+        <foreach collection="list" item="feature" separator=" OR ">
+            (name = #{feature.name} AND courseid = #{feature.courseId} AND label = #{feature.label})
+        </foreach>
     </delete>
 </mapper>

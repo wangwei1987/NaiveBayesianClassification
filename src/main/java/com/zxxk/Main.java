@@ -2,6 +2,7 @@ package com.zxxk;
 
 import com.alibaba.fastjson.JSONArray;
 import com.zxxk.dao.KPointDao;
+import com.zxxk.dao.LabelDao;
 import com.zxxk.dao.QuestionDao;
 import com.zxxk.data.Data;
 import com.zxxk.data.DataSource;
@@ -10,21 +11,39 @@ import com.zxxk.learner.DBLearner;
 import com.zxxk.learner.Labels;
 import com.zxxk.learner.Learner;
 import org.apache.commons.collections4.CollectionUtils;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by shiti on 17-4-20.
  */
 @Component
 public class Main {
+
+    private Main main;
+    private DBLearner dbLearner;
+    private KPointDao kPointDao;
+    private LabelDao labelDao;
+    private Learner learner;
+
+    @Before
+    public void init() {
+        ApplicationContext applicationContext = new FileSystemXmlApplicationContext("classpath:spring/business-config.xml");
+
+        main = applicationContext.getBean(Main.class);
+        learner = applicationContext.getBean(Learner.class);
+        dbLearner = applicationContext.getBean(DBLearner.class);
+        kPointDao = applicationContext.getBean(KPointDao.class);
+        labelDao = applicationContext.getBean(LabelDao.class);
+    }
 
     @Test
     public void test1() {
@@ -120,38 +139,34 @@ public class Main {
         System.out.println(questionDao.getQuestionCount());
     }
 
-    @Resource
-    private KPointDao kPointDao;
-    @Resource
-    private Learner learner;
 
-    public void start(int courseId, int trainingSize, int testingSize, List<String> labelNames) {
-        List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, 0, trainingSize);
-        for (Data data : trainingDatas) data.buildLabelsAndFeatures();
-
-        List<Data> testingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, trainingSize, testingSize);
-        for (Data data : testingDatas) data.buildLabelsAndFeatures();
-
-        learner.setTrainingData(trainingDatas);
-        learner.setTestingData(testingDatas);
-
-//        List<String> labelNames = new ArrayList<>();
-//        labelNames.add("15976");
-//        labelNames.add("16361");
-//        labelNames.add("16016");
-//        labelNames.add("16068");
-//        labelNames.add("15954");
-//        labelNames.add("16320");
-        Labels labels = new Labels(labelNames);
-        learner.setLabels(labels);
-        System.out.println(learner.multiLabelEvaluate());
-    }
+//    public void start(int courseId, int trainingSize, int testingSize, List<String> labelNames) {
+//        List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, 0, trainingSize);
+//        for (Data data : trainingDatas) data.buildLabelsAndFeatures();
+//
+//        List<Data> testingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, trainingSize, testingSize);
+//        for (Data data : testingDatas) data.buildLabelsAndFeatures();
+//
+//        learner.setTrainingData(trainingDatas);
+//        learner.setTestingData(testingDatas);
+//
+////        List<String> labelNames = new ArrayList<>();
+////        labelNames.add("15976");
+////        labelNames.add("16361");
+////        labelNames.add("16016");
+////        labelNames.add("16068");
+////        labelNames.add("15954");
+////        labelNames.add("16320");
+//        Labels labels = new Labels(labelNames);
+//        learner.setLabels(labels);
+//        System.out.println(learner.multiLabelEvaluate());
+//    }
 
     public void start1(int courseId, int trainingSize, int testingSize, List<String> labelNames) {
-        List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, 0, trainingSize);
+        List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, 0, trainingSize, labelNames);
         for (Data data : trainingDatas) data.buildLabelsAndFeatures();
 
-        List<Data> testingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, trainingSize, testingSize);
+        List<Data> testingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, trainingSize, testingSize, labelNames);
         for (Data data : testingDatas) data.buildLabelsAndFeatures();
 
         dbLearner.setTrainingData(trainingDatas);
@@ -161,17 +176,20 @@ public class Main {
         dbLearner.setLabels(labelNames);
         dbLearner.setCourseId(courseId);
         dbLearner.train(false);
-        System.out.println(dbLearner.multiLabelEvaluate());
+        System.out.println(dbLearner.multiLabelEvaluate(false));
     }
 
     public void batchTrain(int courseId, List<String> labelNames, int batchSize) {
         int i = 0;
+        int trainDataSize = 0;
         do {
             System.out.println("batch index : " + i);
-            List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, batchSize * i++, batchSize);
+            List<Data> trainingDatas = kPointDao.getKpointIdsWithQidAndStem(courseId, batchSize * i++, batchSize, labelNames);
             // 如果没有更多数据了，则退出循环
             if (CollectionUtils.isEmpty(trainingDatas)) {
                 break;
+            } else {
+                trainDataSize += trainingDatas.size();
             }
 
             for (Data data : trainingDatas) data.buildLabelsAndFeatures();
@@ -185,6 +203,33 @@ public class Main {
 //            System.out.println(dbLearner.multiLabelEvaluate());
         } while (true);
 
+        long start = System.currentTimeMillis();
+        dbLearner.save(trainDataSize);
+        long end = System.currentTimeMillis();
+        System.out.println("training and saving finished, total size is " + trainDataSize + ", use time : " + (end - start) / 1000);
+    }
+
+    @Test
+    public void testMultiTrain() {
+        int courseId = 27;
+        this.batchTrain(courseId, kPointDao.getAllKpointIds(courseId), 10000);
+    }
+
+    @Test
+    public void testEvaluate() {
+        int courseId = 27;
+        List<String> allLabels = labelDao.getAll(courseId).stream().map(label -> label.getName()).collect(Collectors.toList());
+        List<Data> datas = kPointDao.getKpointIdsWithQidAndStem(courseId, 12000, 200, allLabels);
+        datas.stream().forEach(data -> data.buildLabelsAndFeatures());
+
+        dbLearner.setCourseId(courseId);
+        dbLearner.setLabels(allLabels);
+        dbLearner.setTestingData(datas);
+
+        long start = System.currentTimeMillis();
+        System.out.println(dbLearner.multiLabelEvaluate(false));
+        long end = System.currentTimeMillis();
+        System.out.println("预测用时 : " + (end - start) / 1000);
     }
 
     public static void main(String[] args) {
@@ -226,14 +271,13 @@ public class Main {
 
 //            List<String> labels = random6Items(kPointDao.getTop20KpointIds(26));
 
-            int trainingSize = 200000;
-            int testingSize = 20000;
+            int trainingSize = 25000;
+            int testingSize = 3000;
 
             List<String> labels = new ArrayList<String>(Arrays.asList("10454", "10467", "11384", "11056", "11097", "11391"));
             System.out.println("courseId : " + courseId + ", training size : " + trainingSize + ", testing size : " + testingSize);
             System.out.println("labels : " + labels);
-//            main.start1(courseId, trainingSize, testingSize, labels);
-            main.batchTrain(courseId, kPointDao.getAllKpointIds(courseId), 5000);
+            main.start1(courseId, trainingSize, testingSize, labels);
             System.out.println("courseId : " + courseId + ", training size : " + trainingSize + ", testing size : " + testingSize);
             System.out.println("labels : " + labels);
             System.out.println("========================================================");
@@ -248,26 +292,23 @@ public class Main {
         return selectedLabels;
     }
 
-    @Resource
-    private DBLearner dbLearner;
+//    @Test
+//    public void testRestoreLearnerToDB() {
+//        List<Data> trainingData = kPointDao.getKpointIdsWithQidAndStem(27, 0, 5000);
+//        trainingData.stream().forEach(data -> {
+//            data.buildLabelsAndFeatures();
+//        });
+//        List<String> labels = new ArrayList<String>(Arrays.asList("15976", "16361", "16016", "16068", "15954", "16320"));
+//        dbLearner.setCourseId(27);
+//        dbLearner.setTrainingData(trainingData);
+//        dbLearner.setLabels(labels);
+//        dbLearner.train(false);
+//    }
 
-    @Test
-    public void testRestoreLearnerToDB() {
-        List<Data> trainingData = kPointDao.getKpointIdsWithQidAndStem(27, 0, 5000);
-        trainingData.stream().forEach(data -> {
-            data.buildLabelsAndFeatures();
-        });
-        List<String> labels = new ArrayList<String>(Arrays.asList("15976", "16361", "16016", "16068", "15954", "16320"));
-        dbLearner.setCourseId(27);
-        dbLearner.setTrainingData(trainingData);
-        dbLearner.setLabels(labels);
-        dbLearner.train(false);
-    }
-
-    public static void main1(String[] args) {
-        ApplicationContext applicationContext = new FileSystemXmlApplicationContext("classpath:spring/business-config.xml");
-        Main main = applicationContext.getBean(Main.class);
-        DBLearner learner = applicationContext.getBean(DBLearner.class);
-        main.testRestoreLearnerToDB();
-    }
+//    public static void main1(String[] args) {
+//        ApplicationContext applicationContext = new FileSystemXmlApplicationContext("classpath:spring/business-config.xml");
+//        Main main = applicationContext.getBean(Main.class);
+//        DBLearner learner = applicationContext.getBean(DBLearner.class);
+//        main.testRestoreLearnerToDB();
+//    }
 }

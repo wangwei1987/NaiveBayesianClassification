@@ -13,13 +13,12 @@ import com.zxxk.exception.ClassificationException;
 import com.zxxk.util.MaxValuedLabel;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import trainer.NaiveBayesianTrainer;
 
 import javax.annotation.Resource;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -27,8 +26,6 @@ import java.util.stream.Collectors;
  */
 @Service
 public class DBLearner {
-
-    private BlockingQueue queue = new ArrayBlockingQueue(15000);
 
     // 标签
 //    private Labels labels;
@@ -72,7 +69,7 @@ public class DBLearner {
         }
 
         for (Data data : trainingData) {
-
+            long trainStart = System.currentTimeMillis();
             data.setLabels(filterValidLabels(data.getLabels()));
 
             data.getLabels().stream().forEach(label -> {
@@ -99,42 +96,42 @@ public class DBLearner {
 
             for (String feature : featuresInData) {
 
-                addFeatureCount(courseId + SEPERATOR + feature + SEPERATOR + "_total");
+                addFeatureCount(feature + SEPERATOR + "_total");
                 for (String label : labelsOfData) {
-                    addFeatureCount(courseId + SEPERATOR + feature + SEPERATOR + label);
+                    addFeatureCount(feature + SEPERATOR + label);
                 }
             }
-            if (featureToRestore.size() > 10000) {
-                learnerSaver.saveFeatures(courseId, featureToRestore);
-                featureToRestore.clear();
-            }
+//            if (featureToRestore.size() > 2000000) {
+//                long start = System.currentTimeMillis();
+//                System.out.println("train interrupt : "+(start - trainStart)/1000);
+//                System.out.println("saving ...");
+//                learnerSaver.saveFeatures(courseId, featureToRestore);
+//                featureToRestore.clear();
+//                long end = System.currentTimeMillis();
+//                System.out.println("保存用时b ： " + (end - start) / 1000);
+//            }
+//            System.out.println("finished training! current size is "+featureToRestore.size());
         }
-        learnerSaver.saveLabels(courseId, labels, labelToRestore);
-
-        long start = System.currentTimeMillis();
-        learnerSaver.saveFeatures(courseId, featureToRestore);
-        long end = System.currentTimeMillis();
-        System.out.println("保存用时 ： " + (end - start) / 1000);
 
 
-//        BaseInfo baseInfo = baseInfoDao.get(courseId);
-//        if(baseInfo == null) {
-//            baseInfoDao.insert(new BaseInfo(courseId, trainingData.size()));
-//        }
-//        else {
-//            baseInfo.setDataSize(baseInfo.getDataSize() + trainingData.size());
-//            baseInfoDao.update(baseInfo);
-//        }
-        learnerSaver.saveBaseInfo(courseId, trainingData.size());
+//        long start = System.currentTimeMillis();
+//        learnerSaver.saveLabels(courseId, labels, labelToRestore);
+//        learnerSaver.saveFeatures(courseId, featureToRestore);
+//        learnerSaver.saveBaseInfo(courseId, trainingData.size());
+//        long end = System.currentTimeMillis();
+//        System.out.println("保存用时a ： " + (end - start) / 1000);
 
-        featureToRestore.clear();
+        System.out.println("All finished! total size is " + featureToRestore.size());
+
+
+//        featureToRestore.clear();
         int i = 0;
-        for (Map.Entry<String, Integer> feature : featureToRestore.entrySet()) {
-            if (i != 0 && i % 6 == 0) {
-                System.out.println();
-            }
-            String countsStr = " : (";
-        }
+//        for (Map.Entry<String, Integer> feature : featureToRestore.entrySet()) {
+//            if (i != 0 && i % 6 == 0) {
+//                System.out.println();
+//            }
+//            String countsStr = " : (";
+//        }
 //        for (int i = 0; i < features.size(); i++) {
 //            if (i != 0 && i % 6 == 0) {
 //                System.out.println();
@@ -148,7 +145,34 @@ public class DBLearner {
 //        System.out.println();
     }
 
+    public void save(int trainingDataSize) {
+        learnerSaver.saveBaseInfo(courseId, trainingDataSize);
+        learnerSaver.saveLabels(courseId, labels, labelToRestore);
+
+//        learnerSaver.saveFeatures(courseId, featureToRestore);
+        List<Feature> features = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : featureToRestore.entrySet()) {
+            String[] props = entry.getKey().split(NaiveBayesianTrainer.SEPERATOR);
+            Feature feature = new Feature(courseId, props[0], props[1], entry.getValue());
+            features.add(feature);
+
+            if (features.size() > 10000) {
+                long start = System.currentTimeMillis();
+                learnerSaver.saveFeatures(features);
+                long end = System.currentTimeMillis();
+                System.out.println("finished insert : " + (end - start) / 1000);
+                features.clear();
+            }
+        }
+    }
+
     private void addFeatureCount(String key) {
+        if (!key.contains("_total")) {
+            String totalStr = key.substring(0, key.lastIndexOf("#") + 1);
+            if (!featureToRestore.containsKey(totalStr + "_total")) {
+                System.out.println();
+            }
+        }
         if (featureToRestore.containsKey(key)) {
             featureToRestore.put(key, featureToRestore.get(key) + 1);
         } else {
@@ -157,7 +181,7 @@ public class DBLearner {
     }
 
 
-    public EvaluationResult multiLabelEvaluate() {
+    public EvaluationResult multiLabelEvaluate(boolean train) {
 
 
         List<Result> results = new ArrayList<>();
@@ -166,8 +190,11 @@ public class DBLearner {
         }
         System.out.println("training start !!");
         long start = System.currentTimeMillis();
-        // 先进行训练
-//        this.train();
+        if (train) {
+            // 先进行训练
+//            this.train(false);
+        }
+
         long end = System.currentTimeMillis();
         System.out.println("training done !! use time : " + (end - start) / 1000);
         System.out.println();
@@ -217,7 +244,11 @@ public class DBLearner {
 //                    int presentCount = features.getCounts(i).get(featureIndex);
                     // 当前标签下，此特征出现的概率
                     String keyOfCurLabel = courseId + SEPERATOR + featureName + SEPERATOR + labelList.get(i).getName();
-                    double presentCount = featureMap.get(keyOfCurLabel) == null ? 0.1 : featureMap.get(keyOfCurLabel);
+                    double presentCount = 1.0;
+
+                    presentCount = featureMap.get(keyOfCurLabel) == null ? 0.1 : featureMap.get(keyOfCurLabel);
+
+
                     if (data.getId().equals("1570736451715072")) {
                         System.out.println("present : " + featureName + ", " + labelList.get(i).getName() + ", " + (presentCount / labelList.get(i).getCount()));
                     }
@@ -226,7 +257,15 @@ public class DBLearner {
                     // 非当前标签下，此特征出现的概率
                     String keyOfTotal = courseId + SEPERATOR + featureName + SEPERATOR + "_total";
 
-                    double absentCount = featureMap.get(keyOfTotal) - presentCount;
+                    double absentCount = 1.0;
+                    try {
+                        absentCount = featureMap.get(keyOfTotal) - presentCount;
+                    } catch (Exception e) {
+                        System.out.println();
+                    }
+
+
+
                     double absentTotal = baseInfo.getDataSize() - labelList.get(i).getCount();
                     if (data.getId().equals("1570736451715072")) {
                         System.out.println("absent : " + featureName + ", " + labelList.get(i).getName() + ", " + (absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal));
@@ -261,15 +300,20 @@ public class DBLearner {
                     fileWriter.append("\n");
 //                    System.out.println("values : " + Arrays.toString(value));
                 }
-
+                fileWriter.write("question id : " + result.getId());
+                fileWriter.write("\n");
+                fileWriter.write("true labels are " + result.getLabels());
+                fileWriter.write("\n");
+                fileWriter.write("predicted labels are " + result.getPredictedLabels());
+                fileWriter.write("\n");
                 if (result.getResult()) {
                     evaluationResult.successPlus();
-                    fileWriter.write("true labels are " + result.getLabels() + ", predicted labels are " + result.getPredictedLabels() + ", so predict success!");
+                    fileWriter.write("so predict success!");
                     fileWriter.append("\n");
 //                    System.out.println("true labels are "+result.getLabels()+", predicted labels are "+result.getPredictedLabels()+", so predict success!");
                 } else {
                     evaluationResult.failedPlus();
-                    fileWriter.write("true labels are " + result.getLabels() + ", predicted labels are " + result.getPredictedLabels() + ", so predict failed!");
+                    fileWriter.write(", so predict failed!");
                     fileWriter.append("\n");
 //                    System.out.println("true labels are "+result.getLabels()+", predicted labels are "+result.getPredictedLabels()+", so predict failed!");
                 }

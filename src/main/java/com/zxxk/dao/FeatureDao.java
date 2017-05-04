@@ -23,4 +23,8 @@ public interface FeatureDao {
     void plusCount(Feature feature);
 
     void clear(int courseId);
+
+    void updateAll(List<Feature> updateFeatures);
+
+    void deleteAll(List<Feature> deleteFeatures);
 }

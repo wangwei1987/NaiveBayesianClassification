@@ -2,7 +2,6 @@ package com.zxxk.learner;
 
 import com.zxxk.data.Data;
 import com.zxxk.evaluator.EvaluationResult;
-import com.zxxk.evaluator.Prediction;
 import com.zxxk.exception.ClassificationException;
 import com.zxxk.util.MaxValuedLabel;
 import org.apache.commons.collections4.CollectionUtils;
@@ -306,10 +305,6 @@ public class Learner {
             e.printStackTrace();
         }
         return evaluationResult;
-    }
-
-    public Prediction predict() {
-        return null;
     }
 
 

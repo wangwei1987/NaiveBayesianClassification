@@ -16,7 +16,7 @@
     <select id="getAll" resultType="com.zxxk.domain.Label">
         SELECT *
         FROM ml_label
-        WHERE courseid = #{courseId}
+        WHERE courseid = #{courseId} and count &gt; 0
     </select>
 
     <delete id="clear">
@@ -34,4 +34,6 @@
         SET count = #{count}
         WHERE courseid = #{courseId} AND name = #{name}
     </update>
+
+
 </mapper>

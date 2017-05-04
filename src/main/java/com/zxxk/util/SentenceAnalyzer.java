@@ -23,6 +23,8 @@ public class SentenceAnalyzer {
 
 
     public static List<String> analyze(String text) {
+        text = text.replaceAll("<math.*?latex=\"(.*?)\".*?</math>", "$1");
+        text = text.replaceAll("&#[0-9]{1,4}", " ");
         text = text.replaceAll("<[^>]+>", " ").replace("&gt;", ">").replace("&lt;", "<");
 
         Set<String> result = new HashSet<>();
@@ -41,16 +43,16 @@ public class SentenceAnalyzer {
                 if (!term.toString().trim().equals("")) {
 
                     String word = term.toString();
-                    if (StringUtils.isNumeric(word)) continue;
-                    if (Pattern.compile("^[a-zA-z]$").matcher(word).matches()) continue;
-                    if (Pattern.compile("^x[a-z0-9]{4}$").matcher(word).matches()) continue;
+//                    if (Pattern.compile("^[0-9,]+$").matcher(word).matches()) continue;
+                    if (Pattern.compile("^[a-zA-Z]?$").matcher(word).matches()) continue;
+//                    if (Pattern.compile("^x[a-z0-9]{4}$").matcher(word).matches()) continue;
                     if (Pattern.compile("^[0-9.,-]+$").matcher(word).matches()) continue;
 
-                    word = word.replace("_", "");
+//                    word = word.replace("_", "");
                     word = word.replaceAll("^[0-9.]+([^0-9]{0,3})$", "$1");
                     if (StringUtils.isEmpty(word)) continue;
 
-                    result.add(term.toString());
+                    result.add(word);
                 }
 
             }
@@ -62,10 +64,16 @@ public class SentenceAnalyzer {
         return null;
     }
 
+    private static String replaceMath(String text) {
+        text = text.replaceAll("<math.*?latex=\"(.*?)\".*?</math>", "$1");
+        return text;
+    }
+
     public static void main(String[] args) throws IOException {
-        String text = "<stem><p>已知数列<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/02071cc593774425b4551c405121154c.png\" wmf=\"http://static.zujuan.com/Upload/2012-02/13/1dcf93c0-3132-497f-a944-eef77e2054d1/resource.files/image1dcf93c0-3132-497f-a944-eef77e2054d1140.wmf\" />，其前<math guid=\"f401a17ab9d04ea5a98a4f54f072f519\" latex=\"$n$\" pic=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/f401a17ab9d04ea5a98a4f54f072f519.png\" xmlns='http://www.w3.org/1998/Math/MathML'> <mi>n</mi></math>项和<math guid=\"5b838782aa614fe7b7ae4dd514644904\" latex=\"${{S}_{n}}$\" pic=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/5b838782aa614fe7b7ae4dd514644904.png\" xmlns='http://www.w3.org/1998/Math/MathML'> <mrow>  <msub>   <mi>S</mi>   <mi>n</mi>  </msub>  </mrow></math>满足<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/a0b174154f674f4eb5498b5ed159dee7.png\" wmf=\"http://static.zujuan.com/Upload/2012-02/13/1dcf93c0-3132-497f-a944-eef77e2054d1/resource.files/image1dcf93c0-3132-497f-a944-eef77e2054d1143.wmf\" />是大于0的常数），且<math guid=\"2286e842319f4069bfe1a9e1f4f01137\" latex=\"${{a}_{1}}=1,{{a}_{3}}=4$\" pic=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/2286e842319f4069bfe1a9e1f4f01137.png\" xmlns='http://www.w3.org/1998/Math/MathML'> <mrow>  <msub>   <mi>a</mi>   <mn>1</mn>  </msub>  <mo>=</mo><mn>1</mn><mo>,</mo><msub>   <mi>a</mi>   <mn>3</mn>  </msub>  <mo>=</mo><mn>4</mn></mrow></math></p><p>（1）求<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/05ad8023773f438c9fb23b9d973d9dd7.png\" wmf=\"http://static.zujuan.com/Upload/2012-02/13/1dcf93c0-3132-497f-a944-eef77e2054d1/resource.files/image1dcf93c0-3132-497f-a944-eef77e2054d1145.wmf\" />的值；</p><p>（2）求数列<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/02071cc593774425b4551c405121154c.png\" wmf=\"http://static.zujuan.com/Upload/2012-02/13/1dcf93c0-3132-497f-a944-eef77e2054d1/resource.files/image1dcf93c0-3132-497f-a944-eef77e2054d1140.wmf\" />的通项公式<i>a</i><sub>n</sub>；</p><p>（3）设数列<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/fd86583b4ead4158bac17c092b5d5749.png\" wmf=\"http://static.zujuan.com/Upload/2012-02/13/1dcf93c0-3132-497f-a944-eef77e2054d1/resource.files/image1dcf93c0-3132-497f-a944-eef77e2054d1146.wmf\" />的前<i>n</i>项和为<i>T<sub>n</sub></i>，试比较<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2012/2/13/1570735397715968/1570735403196416/STEM/a00697f5b9774ebd96d0174ce56302bb.png\" wmf=\"http://static.zujuan.com/Upload/2012-02/13/1dcf93c0-3132-497f-a944-eef77e2054d1/resource.files/image1dcf93c0-3132-497f-a944-eef77e2054d1147.wmf\" />与<i>S<sub>n</sub></i>的大小.</p></stem>";
-        List<String> words = SentenceAnalyzer.analyze(text.replaceAll("<[^>]+>", " ").replace("&gt;", ">"));
+        String text = "<stem><p>如果随机变量X服从N (<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2010/9/1/1569824318873600/1569824323969024/STEM/15aca4df91744c7aa5e59250329c3074.png\" wmf=\"http://static.zujuan.com/Upload/2010-09/01/d5c34b0b-32de-4e80-842e-cb44e9cf308c/resource.files/imaged5c34b0b-32de-4e80-842e-cb44e9cf308c47.wmf\" />)且E(X)=3,D(X)=1,则<img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2010/9/1/1569824318873600/1569824323969024/STEM/79691449f83d4bdabc52b6b0e54f4eec.png\" wmf=\"http://static.zujuan.com/Upload/2010-09/01/d5c34b0b-32de-4e80-842e-cb44e9cf308c/resource.files/imaged5c34b0b-32de-4e80-842e-cb44e9cf308c48.wmf\" />=<span u>    </span><img src=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2010/9/1/1569824318873600/1569824323969024/STEM/a9d7509c0c6141bc8bbf6447d0feaf00.png\" wmf=\"http://static.zujuan.com/Upload/2010-09/01/d5c34b0b-32de-4e80-842e-cb44e9cf308c/resource.files/imaged5c34b0b-32de-4e80-842e-cb44e9cf308c49.wmf\" />=<span u>      </span></p></stem>";
+        List<String> words = SentenceAnalyzer.analyze(text);
 
         System.out.println(words);
+//        System.out.println(replaceMath(text));
     }
 }
