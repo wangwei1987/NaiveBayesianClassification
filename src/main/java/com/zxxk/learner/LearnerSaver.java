@@ -6,9 +6,9 @@ import com.zxxk.dao.LabelDao;
 import com.zxxk.domain.BaseInfo;
 import com.zxxk.domain.Feature;
 import com.zxxk.domain.Label;
+import com.zxxk.trainer.NaiveBayesianTrainer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import trainer.NaiveBayesianTrainer;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;

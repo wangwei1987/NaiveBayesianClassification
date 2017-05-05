@@ -11,8 +11,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
         </plugins>
@@ -36,6 +36,7 @@
         <slf4j.version>1.7.21</slf4j.version>
         <logback.version>1.1.7</logback.version>
         <fastjson-version>1.2.21</fastjson-version>
+        <tomcat-version>7.0.77</tomcat-version>
     </properties>
 
     <dependencies>
@@ -230,6 +231,13 @@
             <version>${fastjson-version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-catalina</artifactId>
+            <version>${tomcat-version}</version>
+            <scope>provided</scope>
+        </dependency>
 
     </dependencies>
+
 </project>

@@ -1,4 +1,4 @@
-package trainer;
+package com.zxxk.trainer;
 
 import com.zxxk.data.Data;
 import com.zxxk.exception.ClassificationException;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * naive bayesian trainer
+ * naive bayesian com.zxxk.trainer
  * Created by wangwei on 17-5-2.
  */
 public abstract class NaiveBayesianTrainer implements Trainer {

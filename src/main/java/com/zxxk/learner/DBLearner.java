@@ -10,10 +10,10 @@ import com.zxxk.domain.Label;
 import com.zxxk.evaluator.EvaluationResult;
 import com.zxxk.evaluator.MultiLabelPrediction;
 import com.zxxk.exception.ClassificationException;
+import com.zxxk.trainer.NaiveBayesianTrainer;
 import com.zxxk.util.MaxValuedLabel;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
-import trainer.NaiveBayesianTrainer;
 
 import javax.annotation.Resource;
 import java.io.FileWriter;
@@ -249,28 +249,29 @@ public class DBLearner {
                     presentCount = featureMap.get(keyOfCurLabel) == null ? 0.1 : featureMap.get(keyOfCurLabel);
 
 
-                    if (data.getId().equals("1570736451715072")) {
-                        System.out.println("present : " + featureName + ", " + labelList.get(i).getName() + ", " + (presentCount / labelList.get(i).getCount()));
-                    }
+//                    if (data.getId().equals("1570736451715072")) {
+//                        System.out.println("present : " + featureName + ", " + labelList.get(i).getName() + ", " + (presentCount / labelList.get(i).getCount()));
+//                    }
                     labelValue[i][0] *= presentCount / labelList.get(i).getCount();
 
                     // 非当前标签下，此特征出现的概率
                     String keyOfTotal = courseId + SEPERATOR + featureName + SEPERATOR + "_total";
 
                     double absentCount = 1.0;
+
                     try {
                         absentCount = featureMap.get(keyOfTotal) - presentCount;
                     } catch (Exception e) {
-                        System.out.println();
+//                        System.out.println();
                     }
 
 
 
                     double absentTotal = baseInfo.getDataSize() - labelList.get(i).getCount();
-                    if (data.getId().equals("1570736451715072")) {
-                        System.out.println("absent : " + featureName + ", " + labelList.get(i).getName() + ", " + (absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal));
-                        System.out.println("===================================");
-                    }
+//                    if (data.getId().equals("1570736451715072")) {
+//                        System.out.println("absent : " + featureName + ", " + labelList.get(i).getName() + ", " + (absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal));
+//                        System.out.println("===================================");
+//                    }
                     labelValue[i][1] *= absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal;
 
                 }
@@ -280,12 +281,12 @@ public class DBLearner {
             Result result = new Result(data.getId(), data.getLabels(), labelValue, labelNames);
             results.add(result);
 
-            for (int i = 0; i < labelValue.length; i++) {
-                double[] values = labelValue[i];
-                if (data.getId().equals("1570736451715072")) {
-                    System.out.println(labels.get(i) + ", " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
-                }
-            }
+//            for (int i = 0; i < labelValue.length; i++) {
+//                double[] values = labelValue[i];
+//                if (data.getId().equals("1570736451715072")) {
+//                    System.out.println(labels.get(i) + ", " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+//                }
+//            }
 //            System.out.println("==========================");
         }
         try {
@@ -330,8 +331,85 @@ public class DBLearner {
         return evaluationResult;
     }
 
-    public MultiLabelPrediction predict() {
-        return null;
+    public MultiLabelPrediction predictMultiLabel(int courseId, Data data) {
+        List<Label> labelList = labelDao.getAll(courseId);
+        List<String> labelName = labelList.stream().map(label -> label.getName()).collect(Collectors.toList());
+        BaseInfo baseInfo = baseInfoDao.get(courseId);
+
+        data.setLabels(filterValidLabels(data.getLabels()));
+
+        List<String> featuresOfData = data.getFeatures();
+
+        if (CollectionUtils.isEmpty(featuresOfData)) {
+//            evaluationResult.undonePlus();
+            System.out.println("undone : " + data.getId());
+            return null;
+//            continue;
+        }
+
+        // 初始化labelValue
+        double[][] labelValue = new double[labelName.size()][2];
+        for (int i = 0; i < labelValue.length; i++) {
+            labelValue[i][0] = 1.0 * labelList.get(i).getCount();
+            labelValue[i][1] = 1.0 * (baseInfo.getDataSize() - labelList.get(i).getCount());
+        }
+
+        for (String featureName : featuresOfData) {
+            double[] featureValue = new double[2];
+
+            List<Feature> featuresInTrainingData = featureDao.getByName(featureName);
+            if (CollectionUtils.isEmpty(featuresInTrainingData)) continue;
+//                int featureIndex = features.indexOf(feature);
+//                if (featureIndex < 0) continue;
+            // list转map
+            Map<String, Integer> featureMap = featuresInTrainingData.stream()
+                    .collect(Collectors.toMap(
+                            feature1 -> courseId + SEPERATOR + feature1.getName() + SEPERATOR + feature1.getLabel(),
+                            feature1 -> feature1.getCount()));
+
+
+            for (int i = 0; i < labelList.size(); i++) {
+
+//                    int presentCount = features.getCounts(i).get(featureIndex);
+                // 当前标签下，此特征出现的概率
+                String keyOfCurLabel = courseId + SEPERATOR + featureName + SEPERATOR + labelList.get(i).getName();
+                double presentCount = 1.0;
+
+                presentCount = featureMap.get(keyOfCurLabel) == null ? 0.1 : featureMap.get(keyOfCurLabel);
+
+                labelValue[i][0] *= presentCount / labelList.get(i).getCount();
+
+                // 非当前标签下，此特征出现的概率
+                String keyOfTotal = courseId + SEPERATOR + featureName + SEPERATOR + "_total";
+
+                double absentCount = 1.0;
+                try {
+                    absentCount = featureMap.get(keyOfTotal) - presentCount;
+                } catch (Exception e) {
+                    System.out.println();
+                }
+
+
+                double absentTotal = baseInfo.getDataSize() - labelList.get(i).getCount();
+
+                labelValue[i][1] *= absentCount == 0 ? 0.1 / absentTotal : absentCount * 1.0 / absentTotal;
+
+            }
+            // 平衡label中的值，使得里面的值不会太小
+            balanceValue(labelValue);
+        }
+//        Result result = new Result(data.getId(), data.getLabels(), labelValue, labelNames);
+//        results.add(result);
+//
+//        for (int i = 0; i < labelValue.length; i++) {
+//            double[] values = labelValue[i];
+//            if (data.getId().equals("1570736451715072")) {
+//                System.out.println(labels.get(i) + ", " + data.getId() + ", values : " + Arrays.toString(values) + ", label : " + data.getLabels());
+//            }
+//        }
+        List<String> labelNames = labelList.stream().map(label -> label.getName()).collect(Collectors.toList());
+        MultiLabelPrediction multiLabelPrediction = new MultiLabelPrediction(labelNames, labelValue);
+        return multiLabelPrediction;
     }
 
 

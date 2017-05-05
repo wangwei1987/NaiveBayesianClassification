@@ -1,4 +1,4 @@
-package trainer;
+package com.zxxk.trainer;
 
 import com.zxxk.data.Data;
 

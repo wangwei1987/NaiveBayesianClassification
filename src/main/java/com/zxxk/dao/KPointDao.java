@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by wangwei on 17-4-27.
@@ -17,4 +18,14 @@ public interface KPointDao {
     List<String> getTop20KpointIds(int courseId);
 
     List<String> getAllKpointIds(int courseId);
+
+    List<String> getKPointNames(List<String> predictedLabels);
+
+    List<String> getkpointNamesByQid(String questionId);
+
+    List<String> getValidLabels(Integer courseId);
+
+    List<Map<String, Object>> getKPointsWithCount();
+
+    void saveKPointCount(List<Map<String, Object>> KPointCounts);
 }

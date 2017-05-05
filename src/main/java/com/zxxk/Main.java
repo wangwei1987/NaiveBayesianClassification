@@ -6,7 +6,9 @@ import com.zxxk.dao.LabelDao;
 import com.zxxk.dao.QuestionDao;
 import com.zxxk.data.Data;
 import com.zxxk.data.DataSource;
+import com.zxxk.domain.Label;
 import com.zxxk.evaluator.EvaluationResult;
+import com.zxxk.evaluator.MultiLabelPrediction;
 import com.zxxk.learner.DBLearner;
 import com.zxxk.learner.Labels;
 import com.zxxk.learner.Learner;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by shiti on 17-4-20.
@@ -212,14 +213,17 @@ public class Main {
     @Test
     public void testMultiTrain() {
         int courseId = 27;
-        this.batchTrain(courseId, kPointDao.getAllKpointIds(courseId), 10000);
+//        List<String> labels = kPointDao.getAllKpointIds(courseId);
+        List<String> labels = kPointDao.getValidLabels(courseId);
+        this.batchTrain(courseId, labels, 10000);
     }
 
     @Test
     public void testEvaluate() {
         int courseId = 27;
-        List<String> allLabels = labelDao.getAll(courseId).stream().map(label -> label.getName()).collect(Collectors.toList());
-        List<Data> datas = kPointDao.getKpointIdsWithQidAndStem(courseId, 12000, 200, allLabels);
+//        List<String> allLabels = labelDao.getAll(courseId).stream().map(label -> label.getName()).collect(Collectors.toList());
+        List<String> allLabels = kPointDao.getValidLabels(courseId);
+        List<Data> datas = kPointDao.getKpointIdsWithQidAndStem(courseId, 10000, 1000, allLabels);
         datas.stream().forEach(data -> data.buildLabelsAndFeatures());
 
         dbLearner.setCourseId(courseId);
@@ -230,6 +234,23 @@ public class Main {
         System.out.println(dbLearner.multiLabelEvaluate(false));
         long end = System.currentTimeMillis();
         System.out.println("预测用时 : " + (end - start) / 1000);
+    }
+
+    @Test
+    public void testPredict() {
+        String stem = "<stem><p>(本小题满分12分)设两抛物线<math guid=\"7d3e7356e5cc4d598522db6c95b8150e\" latex=\"$y=-{{x}^{2}}+2x,y={{x}^{2}}$\" pic=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2010/4/17/1569698613747712/1569698618548224/STEM/7d3e7356e5cc4d598522db6c95b8150e.png\"  xmlns='http://www.w3.org/1998/Math/MathML'> <mrow>  <mi>y</mi><mo>=</mo><mo>&#x2212;</mo><msup>   <mi>x</mi>   <mn>2</mn>  </msup>  <mo>+</mo><mn>2</mn><mi>x</mi><mo>,</mo><mi>y</mi><mo>=</mo><msup>   <mi>x</mi>   <mn>2</mn>  </msup>  </mrow></math>所围成的图形为<math guid=\"093c98d0e5d041e988254233d9b3e9ed\" latex=\"$M$\" pic=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2010/4/17/1569698613747712/1569698618548224/STEM/093c98d0e5d041e988254233d9b3e9ed.png\"  xmlns='http://www.w3.org/1998/Math/MathML'> <mi>M</mi></math>，求<math guid=\"093c98d0e5d041e988254233d9b3e9ed\" latex=\"$M$\" pic=\"http://qbm-images.oss-cn-hangzhou.aliyuncs.com/QBM/2010/4/17/1569698613747712/1569698618548224/STEM/093c98d0e5d041e988254233d9b3e9ed.png\"  xmlns='http://www.w3.org/1998/Math/MathML'> <mi>M</mi></math>的面积.</p></stem>";
+        Data data = new Data();
+        data.setStem(stem);
+        data.buildLabelsAndFeatures();
+        MultiLabelPrediction prediction = this.dbLearner.predictMultiLabel(27, data);
+
+        if (prediction.getPredictedLabels().get(0).equals(Label.LABEL_OTHER)) {
+            System.out.println(Label.LABEL_OTHER);
+        } else {
+            List<String> names = kPointDao.getKPointNames(prediction.getPredictedLabels());
+            System.out.println(names);
+        }
+
     }
 
     public static void main(String[] args) {
@@ -311,4 +332,19 @@ public class Main {
 //        DBLearner learner = applicationContext.getBean(DBLearner.class);
 //        main.testRestoreLearnerToDB();
 //    }
+
+    @Test
+    public void testGetValidLabels() {
+        List<String> list = kPointDao.getValidLabels(27);
+        System.out.printf("{");
+        for (int i = 0; i < list.size(); i++) {
+            System.out.printf("\"" + list.get(i) + "\", ");
+            if (i != 0 && i % 10 == 0) {
+                System.out.println();
+            }
+        }
+        System.out.println("}");
+
+    }
+
 }

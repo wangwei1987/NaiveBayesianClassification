@@ -9,6 +9,10 @@
         JOIN questions q on qk.questionid = q.id
         JOIN question_qmls qq on qk.questionid = qq.questionid
         WHERE applicationid = 'zujuan' AND courseid = #{courseId}
+        AND
+        <foreach collection="labelNames" item="labelName" open="(" separator=" OR " close=")">
+            find_in_set(#{labelName}, qk.pointids)
+        </foreach>
         limit #{start}, #{limit}
     </select>
 
@@ -24,7 +28,43 @@
     <select id="getAllKpointIds" resultType="String">
         SELECT id
         FROM knowledge_points
-        WHERE courseid = #{courseId}
+        WHERE courseid = #{courseId} AND type != 'NODE'
     </select>
 
+    <select id="getKPointNames" resultType="String">
+        SELECT NAME FROM knowledge_points
+        WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getkpointNamesByQid" resultType="String">
+        SELECT kp.name
+        FROM question_kpoint qk
+        JOIN knowledge_points kp ON kp.id=qk.pointid AND kp.type != 'NODE'
+        WHERE qk.questionid = #{questionId}
+    </select>
+
+    <select id="getValidLabels" resultType="String">
+        SELECT pointid
+        FROM question_kpoint qk
+        join questions q on qk.questionid=q.id
+        where q.courseid=#{courseId}
+        group by pointid
+        having count(*)>8000
+    </select>
+
+    <select id="getKPointsWithCount" resultType="Map">
+        SELECT questionid, pointid, count(*) count
+        FROM question_kpoint
+        GROUP BY pointid
+    </select>
+
+    <insert id="saveKPointCount">
+        INSERT INTO kpoint_count VALUES
+        <foreach collection="list" item="kpointCount" separator=",">
+            (#{kpointCount.courseid}, #{kpointCount.pointid}, #{kpointCount.count})
+        </foreach>
+    </insert>
 </mapper>

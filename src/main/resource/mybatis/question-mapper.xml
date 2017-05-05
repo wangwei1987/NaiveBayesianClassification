@@ -17,4 +17,16 @@
             WHERE courseid=#{courseId} AND applicationid="zujuan" GROUP BY qk.questionid
         ) temp
     </select>
+
+    <select id="getStem" resultType="String">
+        SELECT stem
+        FROM question_qmls
+        WHERE questionid = #{questionId}
+    </select>
+
+    <select id="getQuestionById" resultType="Map">
+        SELECT *
+        FROM questions
+        WHERE id = #{questionId}
+    </select>
 </mapper>

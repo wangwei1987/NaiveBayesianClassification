@@ -4,6 +4,8 @@ package com.zxxk.domain;
  * Created by wangwei on 17-4-28.
  */
 public class Label {
+
+    public static final String LABEL_OTHER = "_other";
     /**
      * 标签名
      */

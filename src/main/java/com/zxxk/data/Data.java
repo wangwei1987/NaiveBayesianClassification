@@ -77,7 +77,7 @@ public class Data {
     }
 
     public void buildLabelsAndFeatures() {
-        this.setLabels(Arrays.asList(pointIds.split(",")));
-        this.setFeatures(SentenceAnalyzer.analyze(this.getStem()));
+        if (pointIds != null) this.setLabels(Arrays.asList(pointIds.split(",")));
+        if (stem != null) this.setFeatures(SentenceAnalyzer.analyze(stem));
     }
 }

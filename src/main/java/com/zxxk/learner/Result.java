@@ -64,7 +64,7 @@ public class Result {
         for (int i = 0; i < scores.length - 1; i++) {
             double[] score = scores[i];
             // 当标签选择和不选择的概率之商大于4，亦即选择的概率大于80%，不选择的概率小于20%时，此条数据才设置此标签
-            if (score[0] / score[1] >= 4) {
+            if (score[0] / score[1] > 20) {
                 predictedLabels.add(allLabels.get(i));
             }
         }

@@ -1,4 +1,4 @@
-package achievement;
+package com.zxxk.achievement;
 
 /**
  * Created by wangwei on 17-5-3.

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>试题自动打标</title>
+
+    <link rel="stylesheet" href="content/bootstrap.css"/>
+    <link rel="stylesheet" href="content/styles.css"/>
+    <link rel="stylesheet" href="content/animations.css"/>
+</head>
+<body ng-app="myApp" ng-controller="myCtrl" align="center">
+<!--<div>hello world! {{name}}</div>-->
+<!--<div>{{message}}</div>-->
+
+<div style="width: 80%;margin: auto">
+    <textarea style="float: left;overflow: auto" cols="74" rows="15" ng-model="query"
+              placeholder="please input question id or stem, then click the button named predict"></textarea>
+    <textarea ng-model="kpoints" style="float: right;margin-bottom: 10px;overflow: auto" cols="74" rows="15"></textarea>
+</div>
+<button class="btn btn-primary" ng-click="predict()" style="display: block;margin: auto;clear: both" align="center">
+    predict
+</button>
+<textarea ng-model="predictedKpoints" cols="150" rows="20"
+          style="word-wrap: break-word;margin-top: 10px;overflow: auto;"></textarea>
+<div>
+    <span style="color: #ff5c6f;font-size: 70px">{{message}}</span>
+</div>
+
+
+<script src="scripts/jquery-2.0.3.js"></script>
+<script src="scripts/bootstrap.js"></script>
+<script src="scripts/angular.js"></script>
+<script src="scripts/angular-route.js"></script>
+<script src="scripts/angular-animate.js"></script>
+<script src="js/kpoint.js"></script>
+</body>
+</html>
