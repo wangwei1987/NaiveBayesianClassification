@@ -37,7 +37,15 @@
     <select id="getByName" resultType="com.zxxk.domain.Feature">
         SELECT *
         FROM ml_feature
-        WHERE name = #{name}
+        WHERE courseid = #{courseId} AND name = #{name}
+        <if test="labels != null">
+            AND (label = '_total' OR
+            label IN
+            <foreach collection="labels" item="label" open="(" close=")" separator=",">
+                #{label.name}
+            </foreach>
+            )
+        </if>
     </select>
 
     <delete id="clear">

@@ -1,6 +1,7 @@
 package com.zxxk.dao;
 
 import com.zxxk.domain.Feature;
+import com.zxxk.domain.Label;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +19,7 @@ public interface FeatureDao {
 
     Feature get(@Param("courseId") int courseId, @Param("name") String name, @Param("label") String label);
 
-    List<Feature> getByName(String name);
+    List<Feature> getByName(@Param("courseId") int courseId, @Param("name") String name, @Param("labels") List<Label> labels);
 
     void plusCount(Feature feature);
 

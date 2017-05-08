@@ -1,8 +1,10 @@
 package com.zxxk.trainer;
 
 import com.zxxk.data.Data;
+import com.zxxk.domain.Label;
 import com.zxxk.exception.ClassificationException;
 import com.zxxk.learner.Labels;
+import com.zxxk.util.LabelUtils;
 import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.ArrayList;
@@ -19,28 +21,45 @@ public abstract class NaiveBayesianTrainer implements Trainer {
     // seperator between feature and labels
     public static String SEPERATOR = "###";
 
-    protected Map<String, Integer> featuresToRestore = new HashMap<>();
+    private Map<String, Integer> featuresToRestore = new HashMap<>();
 
-    protected Map<String, Integer> labelsToRestore = new HashMap<>();
+    private Map<String, Integer> labelsToRestore = new HashMap<>();
 
-    private List<String> labels;
+    // TODO: 此属性完全可以从labelsToRestore中提取，
+    // 但是如果用户指定了训练的label，它到有一定的保留价值
+    // 先留着，以后再作评估
+    private List<String> allLabels;
 
-    private int trainingDataSize = 0;
+    private boolean specifiedLabels = false;
 
     // 当features的数量达到此阈值时，将触发保存操作,不需要此功能的话，可以将此值设为0
-    private int featureThreshold = 10000;
+    private int featureThreshold = 0;
 
     // 保存学习成果
-    protected abstract void save();
+    public abstract void save(int trainingDataSize, Map<String, Integer> featuresToRestore,
+                              List<String> allLabels, Map<String, Integer> labelsToRestore);
 
     @Override
     public void train(List<Data> trainingData) {
-        checkLabels();
 
         for (Data data : trainingData) {
-            trainingDataSize++;
 
-            data.setLabels(filterValidLabels(data.getLabels()));
+            List<String> featuresInData = data.getFeatures();
+            List<String> labelsOfData = data.getLabels();
+
+            // 如果用户指定只训练某些标签，则要先滤掉无效的标签
+            if (specifiedLabels) {
+                data.setLabels(LabelUtils.filterValidLabels(data.getLabels(), allLabels));
+                labelsOfData = data.getLabels();
+            } else {
+                collectLabels(data.getLabels());
+            }
+
+            // 如果此数据没有有效的label，则将它的label设置为LABEL_OTHER
+            if (CollectionUtils.isEmpty(labelsOfData)) {
+                labelsOfData = new ArrayList<>();
+                labelsOfData.add(Labels.LABEL_OTHER);
+            }
 
             data.getLabels().stream().forEach(label -> {
                 if (labelsToRestore.containsKey(label)) {
@@ -50,56 +69,48 @@ public abstract class NaiveBayesianTrainer implements Trainer {
                 }
             });
 
-            List<String> featuresInData = data.getFeatures();
-            List<String> labelsOfData = data.getLabels();
-
-            // labels is empty or invalid, set the label to _other
-            if (CollectionUtils.isEmpty(labelsOfData)) {
-                // if label is empty, set its label to _other
-                labelsOfData = new ArrayList<>();
-                labelsOfData.add(Labels.LABEL_OTHER);
-            } else {
-                // clear invalid laels
-                data.setLabels(filterValidLabels(labelsOfData));
-                labelsOfData = data.getLabels();
-            }
-
             for (String feature : featuresInData) {
-
                 addFeatureCount(feature + SEPERATOR + "_total");
                 for (String label : labelsOfData) {
                     addFeatureCount(feature + SEPERATOR + label);
                 }
             }
 
-            // 待保存的feature的数量超出阈值时，出发保存操作
+            // 待保存的feature的数量超出阈值时，触发保存操作
             if (featureThreshold > 0 && featuresToRestore.size() > featureThreshold) {
-                save();
+                // TODO: 17-5-6
             }
         }
+        save(trainingData.size(), featuresToRestore, allLabels, labelsToRestore);
     }
 
-    /**
-     * 清除无效的label
-     *
-     * @param labelsOfData
-     * @return
-     */
-    private List<String> filterValidLabels(List<String> labelsOfData) {
-        // clear invalid labels
-        List<String> finalLabels = new ArrayList<>();
-        for (String label : labelsOfData) {
-            if (labels.indexOf(label) >= 0) {
-                finalLabels.add(label);
+
+    public void train(List<Data> trainingData, List<String> allLabels) {
+        this.allLabels = allLabels;
+        this.specifiedLabels = true;
+
+        this.train(trainingData);
+    }
+
+
+    private void collectLabels(List<String> labels) {
+        if (CollectionUtils.isEmpty(labels))
+            return;
+        if (CollectionUtils.isEmpty(allLabels)) {
+            allLabels = new ArrayList<>();
+            allLabels.add(Label.LABEL_OTHER);
+        }
+        labels.stream().forEach(label -> {
+            if (!allLabels.contains(label)) {
+                allLabels.add(label);
             }
-        }
-        if (CollectionUtils.isEmpty(finalLabels)) {
-            finalLabels.add(Labels.LABEL_OTHER);
-        }
-        return finalLabels;
+        });
     }
 
     private void addFeatureCount(String key) {
+        if (featuresToRestore.containsKey(key) && !featuresToRestore.containsKey(key.substring(0, key.lastIndexOf("#") + 1) + "_total")) {
+            System.out.println(key);
+        }
         if (featuresToRestore.containsKey(key)) {
             featuresToRestore.put(key, featuresToRestore.get(key) + 1);
         } else {
@@ -108,25 +119,19 @@ public abstract class NaiveBayesianTrainer implements Trainer {
     }
 
     private void checkLabels() {
-        if (CollectionUtils.isEmpty(labels)) {
+        if (CollectionUtils.isEmpty(allLabels)) {
             throw new ClassificationException("labels can not be empty!");
         }
     }
 
-    public void setLabels(List<String> labels) {
-        this.labels = labels;
-    }
-
-    public List<String> getLabels() {
-        return labels;
-    }
-
-    public int getTrainingDataSize() {
-        return trainingDataSize;
+    /**
+     * 重置变量
+     */
+    public void clean() {
     }
 
     public void setFeatureThreshold(int featureThreshold) {
-        featureThreshold = featureThreshold;
+        this.featureThreshold = featureThreshold;
     }
 
 }

@@ -181,19 +181,19 @@ public class DBLearner {
     }
 
 
-    public EvaluationResult multiLabelEvaluate(boolean train) {
+    public EvaluationResult multiLabelEvaluate(List<Label> labelList) {
 
 
-        List<Result> results = new ArrayList<>();
+        List<Result2> results = new ArrayList<>();
         if (CollectionUtils.isEmpty(testingData)) {
             throw new ClassificationException("testing data should not be empty!");
         }
         System.out.println("training start !!");
         long start = System.currentTimeMillis();
-        if (train) {
+//        if (train) {
             // 先进行训练
 //            this.train(false);
-        }
+//        }
 
         long end = System.currentTimeMillis();
         System.out.println("training done !! use time : " + (end - start) / 1000);
@@ -201,7 +201,7 @@ public class DBLearner {
         System.out.println("evaluating start !!");
 
         BaseInfo baseInfo = baseInfoDao.get(courseId);
-        List<Label> labelList = labelDao.getAll(courseId);
+//        List<Label> labelList = labelDao.getAll(courseId);
         List<String> labelNames = labelList.stream().map(label -> label.getName()).collect(Collectors.toList());
 
         EvaluationResult evaluationResult = new EvaluationResult();
@@ -219,7 +219,7 @@ public class DBLearner {
             }
 
             // 初始化labelValue
-            double[][] labelValue = new double[labels.size()][2];
+            double[][] labelValue = new double[labelList.size()][2];
             for (int i = 0; i < labelValue.length; i++) {
                 labelValue[i][0] = 1.0 * labelList.get(i).getCount();
                 labelValue[i][1] = 1.0 * (baseInfo.getDataSize() - labelList.get(i).getCount());
@@ -228,7 +228,7 @@ public class DBLearner {
             for (String featureName : featuresOfData) {
                 double[] featureValue = new double[2];
 
-                List<Feature> featuresInTrainingData = featureDao.getByName(featureName);
+                List<Feature> featuresInTrainingData = featureDao.getByName(courseId, featureName, null);
                 if (CollectionUtils.isEmpty(featuresInTrainingData)) continue;
 //                int featureIndex = features.indexOf(feature);
 //                if (featureIndex < 0) continue;
@@ -278,7 +278,7 @@ public class DBLearner {
                 // 平衡label中的值，使得里面的值不会太小
                 balanceValue(labelValue);
             }
-            Result result = new Result(data.getId(), data.getLabels(), labelValue, labelNames);
+            Result2 result = new Result2(data.getId(), data.getLabels(), labelValue, labelNames);
             results.add(result);
 
 //            for (int i = 0; i < labelValue.length; i++) {
@@ -292,18 +292,18 @@ public class DBLearner {
         try {
             FileWriter fileWriter = new FileWriter("/home/wangwei/Dev/data/result1.txt", false);
 
-            for (Result result : results) {
-                fileWriter.append(result.getId() + ", " + result.getLabels());
+            for (Result2 result : results) {
+                fileWriter.append(result.getId() + ", " + result.getSelectedLabels());
                 fileWriter.append("\n");
 
                 for (int i = 0; i < result.getScores().length; i++) {
-                    fileWriter.append(labels.get(i) + " values : " + Arrays.toString(result.getScores()[i]));
+                    fileWriter.append(labelList.get(i).getName() + " values : " + Arrays.toString(result.getScores()[i]));
                     fileWriter.append("\n");
 //                    System.out.println("values : " + Arrays.toString(value));
                 }
                 fileWriter.write("question id : " + result.getId());
                 fileWriter.write("\n");
-                fileWriter.write("true labels are " + result.getLabels());
+                fileWriter.write("true labels are " + result.getSelectedLabels());
                 fileWriter.write("\n");
                 fileWriter.write("predicted labels are " + result.getPredictedLabels());
                 fileWriter.write("\n");
@@ -357,7 +357,7 @@ public class DBLearner {
         for (String featureName : featuresOfData) {
             double[] featureValue = new double[2];
 
-            List<Feature> featuresInTrainingData = featureDao.getByName(featureName);
+            List<Feature> featuresInTrainingData = featureDao.getByName(courseId, featureName, null);
             if (CollectionUtils.isEmpty(featuresInTrainingData)) continue;
 //                int featureIndex = features.indexOf(feature);
 //                if (featureIndex < 0) continue;
@@ -398,7 +398,7 @@ public class DBLearner {
             // 平衡label中的值，使得里面的值不会太小
             balanceValue(labelValue);
         }
-//        Result result = new Result(data.getId(), data.getLabels(), labelValue, labelNames);
+//        Result2 result = new Result2(data.getId(), data.getLabels(), labelValue, labelNames);
 //        results.add(result);
 //
 //        for (int i = 0; i < labelValue.length; i++) {
@@ -408,7 +408,8 @@ public class DBLearner {
 //            }
 //        }
         List<String> labelNames = labelList.stream().map(label -> label.getName()).collect(Collectors.toList());
-        MultiLabelPrediction multiLabelPrediction = new MultiLabelPrediction(labelNames, labelValue);
+//        MultiLabelPrediction multiLabelPrediction = new MultiLabelPrediction(labelNames, labelValue);
+        MultiLabelPrediction multiLabelPrediction = new MultiLabelPrediction();
         return multiLabelPrediction;
     }
 

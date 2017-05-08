@@ -1,6 +1,7 @@
 package com.zxxk.evaluator;
 
 import com.zxxk.data.Data;
+import com.zxxk.learner.Result;
 
 import java.util.List;
 
@@ -9,7 +10,7 @@ import java.util.List;
  */
 public interface Evaluator {
 
-    MultiLabelPrediction predictMultiLabel(Data data);
+    Result predictMultiLabel(Data data);
 
     EvaluationResult evaluateMultiLabel(List<Data> testingData);
 }

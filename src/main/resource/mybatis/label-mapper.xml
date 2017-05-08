@@ -10,7 +10,10 @@
     </insert>
 
     <insert id="inserAll">
-
+        INSERT INTO ml_label VALUES
+        <foreach collection="list" item="label" separator=",">
+            (#{label.name}, #{label.count}, #{label.courseId})
+        </foreach>
     </insert>
 
     <select id="getAll" resultType="com.zxxk.domain.Label">
@@ -35,5 +38,19 @@
         WHERE courseid = #{courseId} AND name = #{name}
     </update>
 
+    <select id="getValidLabels" resultType="com.zxxk.domain.Label">
+        SELECT *
+        FROM ml_label l
+        JOIN kpoint_count kc on l.name = kc.pointid
+        WHERE l.courseid = #{courseId} AND kc.count > 8000
+    </select>
 
+    <select id="getLabelsByNames" resultType="com.zxxk.domain.Label">
+        SELECT *
+        FROM ml_label
+        WHERE name IN
+        <foreach collection="list" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
 </mapper>

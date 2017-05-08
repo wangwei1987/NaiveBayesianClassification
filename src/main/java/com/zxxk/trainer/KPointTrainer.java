@@ -1,39 +1,45 @@
 package com.zxxk.trainer;
 
-import com.zxxk.learner.LearnerSaver;
+import com.zxxk.achievement.KPointAchievement;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Created by wangwei on 17-5-2.
+ * Created by wangwei.
  */
 @Component
 public class KPointTrainer extends NaiveBayesianTrainer {
 
-    private int courseId;
-
+    private int trainintDataSize;
     @Resource
-    private LearnerSaver saver;
-
-    public KPointTrainer(int courseId) {
-        this.courseId = courseId;
-    }
-
-    public KPointTrainer() {
-
-    }
+    private KPointAchievement kPointAchievement;
 
     @Override
-    protected void save() {
-        saver.saveAll(courseId, getTrainingDataSize(), featuresToRestore, getLabels(), labelsToRestore);
-    }
+    public void save(int trainingDataSize, Map<String, Integer> featuresToRestore,
+                     List<String> allLabels, Map<String, Integer> labelsToRestore) {
+//        kPointAchievement.save(trainingDataSize, featuresToRestore, allLabels, labelsToRestore);
+        if (trainingDataSize > 0) {
+            this.trainintDataSize += trainingDataSize;
+            return;
+        }
 
-    public int getCourseId() {
-        return courseId;
+        long t1 = System.currentTimeMillis();
+        kPointAchievement.saveBaseInfo(this.trainintDataSize);
+        long t2 = System.currentTimeMillis();
+        System.out.println("finish saving base info..." + (t2 - t1) / 1000);
+        kPointAchievement.saveLabels(allLabels, labelsToRestore);
+        long t3 = System.currentTimeMillis();
+        System.out.println("finish sving labels..." + (t3 - t2) / 1000);
+
+        kPointAchievement.saveFeatures(featuresToRestore);
+        long t4 = System.currentTimeMillis();
+        System.out.println("finish saving features..." + (t4 - t3) / 1000);
     }
 
     public void setCourseId(int courseId) {
-        this.courseId = courseId;
+        kPointAchievement.setCourseId(courseId);
     }
 }

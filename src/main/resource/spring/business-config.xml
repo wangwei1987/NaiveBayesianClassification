@@ -14,12 +14,14 @@
         <context:exclude-filter type="annotation"
                                 expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
     </context:component-scan>
+    <context:annotation-config></context:annotation-config>
 
     <context:property-placeholder location="classpath:data-access.properties"/>
     <import resource="datasource-config.xml"/>
 
+    <!--todo update to github-->
     <!-- enables scanning for @Transactional annotations -->
-    <tx:annotation-driven/>
+    <tx:annotation-driven mode="aspectj"/>
 
 
     <!-- transaction manager, use JtaTransactionManager for global tx -->

@@ -23,4 +23,8 @@ public interface LabelDao {
     void clear(int courseId);
 
     void update(Label label);
+
+    List<Label> getValidLabels(int courseId);
+
+    List<Label> getLabelsByNames(List<String> evaluatingLabelNames);
 }

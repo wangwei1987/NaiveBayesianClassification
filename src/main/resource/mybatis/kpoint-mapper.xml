@@ -9,10 +9,13 @@
         JOIN questions q on qk.questionid = q.id
         JOIN question_qmls qq on qk.questionid = qq.questionid
         WHERE applicationid = 'zujuan' AND courseid = #{courseId}
-        AND
-        <foreach collection="labelNames" item="labelName" open="(" separator=" OR " close=")">
-            find_in_set(#{labelName}, qk.pointids)
-        </foreach>
+        <if test="labelNames != null">
+            AND
+            <foreach collection="labelNames" item="labelName" open="(" separator=" OR " close=")">
+                find_in_set(#{labelName}, qk.pointids)
+            </foreach>
+        </if>
+
         limit #{start}, #{limit}
     </select>
 
@@ -46,17 +49,22 @@
         WHERE qk.questionid = #{questionId}
     </select>
 
-    <select id="getValidLabels" resultType="String">
-        SELECT pointid
-        FROM question_kpoint qk
-        join questions q on qk.questionid=q.id
-        where q.courseid=#{courseId}
-        group by pointid
-        having count(*)>8000
+    <select id="getValidLabels" resultType="com.zxxk.domain.Label">
+          SELECT kp.id name, kp.courseid courseid
+          FROM knowledge_points kp
+          JOIN kpoint_count kc on kp.id = kc.pointid
+          WHERE kp.courseid = #{courseid} AND kp.type != "NODE" AND kc.count > 8000
+    </select>
+
+    <select id="getEvaluatingLabels" resultType="com.zxxk.domain.Label">
+        SELECT l.*
+        FROM ml_label l
+        JOIN kpoint_count kc on l.name = kc.pointid
+        WHERE l.courseid = #{courseid} AND kc.count > 8000
     </select>
 
     <select id="getKPointsWithCount" resultType="Map">
-        SELECT questionid, pointid, count(*) count
+        SELECT pointid, count(*) count
         FROM question_kpoint
         GROUP BY pointid
     </select>
@@ -67,4 +75,10 @@
             (#{kpointCount.courseid}, #{kpointCount.pointid}, #{kpointCount.count})
         </foreach>
     </insert>
+
+    <select id="getKPointById" resultType="Map">
+        SELECT *
+        FROM knowledge_points
+        WHERE id = #{id}
+    </select>
 </mapper>

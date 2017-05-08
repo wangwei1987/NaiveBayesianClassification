@@ -26,6 +26,7 @@ public class ToolsMain {
     private LabelDao labelDao;
     private Learner learner;
     private QuestionDao questionDao;
+    private ToolsService toolsService;
 
     @Before
     public void init() {
@@ -37,6 +38,7 @@ public class ToolsMain {
         kPointDao = applicationContext.getBean(KPointDao.class);
         labelDao = applicationContext.getBean(LabelDao.class);
         questionDao = applicationContext.getBean(QuestionDao.class);
+        toolsService = applicationContext.getBean(ToolsService.class);
     }
 
     @Test
@@ -45,10 +47,13 @@ public class ToolsMain {
         List<Map<String, Object>> saveList = new ArrayList<>();
         for (Map<String, Object> kpoint : list) {
             Map<String, Object> params = new HashMap<>();
-            String questionId = (String) kpoint.get("questionid");
-            Map<String, Object> question = questionDao.getQuestionById(questionId);
+            Long pointId = (Long) kpoint.get("pointid");
+            Map<String, Object> kpointById = kPointDao.getKPointById(pointId);
 
-            params.put("courseid", question.get("courseid"));
+            if (kpointById == null) {
+                continue;
+            }
+            params.put("courseid", kpointById.get("courseid"));
             params.put("pointid", kpoint.get("pointid"));
             params.put("count", kpoint.get("count"));
 
@@ -57,9 +62,15 @@ public class ToolsMain {
 
             if (saveList.size() > 10000) {
                 System.out.println("1w le , saving ...");
-                kPointDao.saveKPointCount(saveList);
+                toolsService.saveKPointCount(saveList);
                 saveList.clear();
             }
         }
+    }
+
+    @Test
+    public void testGetQuestion() {
+        Map<String, Object> question = questionDao.getQuestionById("1560908513222656");
+        System.out.println(question);
     }
 }

@@ -1,6 +1,7 @@
 package com.zxxk.dao;
 
 import com.zxxk.data.Data;
+import com.zxxk.domain.Label;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 
@@ -23,9 +24,13 @@ public interface KPointDao {
 
     List<String> getkpointNamesByQid(String questionId);
 
-    List<String> getValidLabels(Integer courseId);
+    List<Label> getValidLabels(Integer courseId);
 
     List<Map<String, Object>> getKPointsWithCount();
 
     void saveKPointCount(List<Map<String, Object>> KPointCounts);
+
+    Map<String, Object> getKPointById(Long id);
+
+    List<Label> getEvaluatingLabels(int courseId);
 }
